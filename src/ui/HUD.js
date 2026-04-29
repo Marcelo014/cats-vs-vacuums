@@ -13,12 +13,17 @@ const CAT_PANEL = [
   { type: 'tuxedo',     label: '🎩 Tuxedo',     cost: 300, color: '#90a4ae' },
 ]
 
+// Triggerables that need a map click target
+const TARGETED_TRIGGERS = ['siamese', 'ragdoll', 'chonk']
+
 export default class HUD {
   constructor(scene, startingScraps) {
     this.scene = scene
     this.scraps = startingScraps
     this.dirt = DIRT.maxDirt
     this._selectedBtn = null
+    this._awaitingTriggerTarget = false
+    this._triggerCat = null
 
     this._buildScrapsDisplay()
     this._buildDirtMeter()
@@ -110,7 +115,6 @@ export default class HUD {
     const W = GAME.width
     const H = GAME.height
 
-    // Label
     s.add.text(W - 260, H - 50, '⚡ SPEED', {
       fontSize: '11px',
       fontFamily: 'monospace',
@@ -140,7 +144,6 @@ export default class HUD {
 
       bg.on('pointerdown', () => {
         SETTINGS.gameSpeed = spd.value
-        // Update button styles
         this._speedBtns.forEach((btn, j) => {
           btn.bg.setFillStyle(speeds[j].value === spd.value ? 0x1b5e20 : 0x1a1a2e)
           btn.txt.setColor(speeds[j].value === spd.value ? '#a5d6a7' : '#546e7a')
@@ -182,14 +185,14 @@ export default class HUD {
       color: '#ffd54f',
     }).setScrollFactor(0).setDepth(52).setOrigin(0.5)
 
-    const items = []
+    const items = [overlay, panel, title]
 
-    // Music toggle
     const musicTxt = s.add.text(W / 2 - 160, H / 2 - 70, `🎵 Music: ${SETTINGS.musicOn ? 'ON' : 'OFF'}`, {
       fontSize: '16px',
       fontFamily: 'monospace',
       color: SETTINGS.musicOn ? '#a5d6a7' : '#ef5350',
     }).setScrollFactor(0).setDepth(52).setInteractive({ useHandCursor: true })
+    items.push(musicTxt)
 
     musicTxt.on('pointerdown', () => {
       SETTINGS.musicOn = !SETTINGS.musicOn
@@ -197,12 +200,12 @@ export default class HUD {
       musicTxt.setColor(SETTINGS.musicOn ? '#a5d6a7' : '#ef5350')
     })
 
-    // SFX toggle
     const sfxTxt = s.add.text(W / 2 - 160, H / 2 - 30, `🔊 SFX: ${SETTINGS.sfxOn ? 'ON' : 'OFF'}`, {
       fontSize: '16px',
       fontFamily: 'monospace',
       color: SETTINGS.sfxOn ? '#a5d6a7' : '#ef5350',
     }).setScrollFactor(0).setDepth(52).setInteractive({ useHandCursor: true })
+    items.push(sfxTxt)
 
     sfxTxt.on('pointerdown', () => {
       SETTINGS.sfxOn = !SETTINGS.sfxOn
@@ -210,12 +213,12 @@ export default class HUD {
       sfxTxt.setColor(SETTINGS.sfxOn ? '#a5d6a7' : '#ef5350')
     })
 
-    // Auto play toggle
     const autoTxt = s.add.text(W / 2 - 160, H / 2 + 10, `⏭️  Auto Wave: ${SETTINGS.autoPlay ? 'ON' : 'OFF'}`, {
       fontSize: '16px',
       fontFamily: 'monospace',
       color: SETTINGS.autoPlay ? '#a5d6a7' : '#ef5350',
     }).setScrollFactor(0).setDepth(52).setInteractive({ useHandCursor: true })
+    items.push(autoTxt)
 
     autoTxt.on('pointerdown', () => {
       SETTINGS.autoPlay = !SETTINGS.autoPlay
@@ -223,22 +226,17 @@ export default class HUD {
       autoTxt.setColor(SETTINGS.autoPlay ? '#a5d6a7' : '#ef5350')
     })
 
-    // Note about sound
     s.add.text(W / 2, H / 2 + 60, '(Sound not yet implemented — coming soon)', {
       fontSize: '11px',
       fontFamily: 'monospace',
       color: '#37474f',
     }).setScrollFactor(0).setDepth(52).setOrigin(0.5)
 
-    items.push(overlay, panel, title, musicTxt, sfxTxt, autoTxt)
-
-    // Close button
     const closeBtn = s.add.text(W / 2, H / 2 + 110, '[ CLOSE ]', {
       fontSize: '18px',
       fontFamily: 'monospace',
       color: '#ef9a9a',
     }).setScrollFactor(0).setDepth(52).setOrigin(0.5).setInteractive({ useHandCursor: true })
-
     items.push(closeBtn)
 
     const cleanup = () => items.forEach(o => o.destroy())
@@ -300,40 +298,51 @@ export default class HUD {
     s.add.rectangle(90, panelY, 160, 72, 0x0d0d1a, 0.95)
       .setScrollFactor(0).setDepth(9)
 
-    this._selectedCatText = s.add.text(90, panelY - 16, 'Click a cat\nto select', {
+    this._selectedCatText = s.add.text(90, panelY - 22, 'Click a cat\nto select', {
       fontSize: '11px',
       fontFamily: 'monospace',
       color: '#78909c',
       align: 'center',
     }).setScrollFactor(0).setDepth(11).setOrigin(0.5)
 
-    this._upgradeBtn = s.add.rectangle(55, panelY + 14, 68, 22, 0x1a237e)
+    // Upgrade button
+    this._upgradeBtn = s.add.rectangle(55, panelY + 6, 68, 18, 0x1a237e)
       .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
       .setVisible(false)
 
-    this._upgradeTxt = s.add.text(55, panelY + 14, '', {
+    this._upgradeTxt = s.add.text(55, panelY + 6, '', {
       fontSize: '10px',
       fontFamily: 'monospace',
       color: '#90caf9',
     }).setScrollFactor(0).setDepth(11).setOrigin(0.5).setVisible(false)
 
-    this._upgradeBtn.on('pointerdown', () => {
-      s.events.emit('upgradeSelectedCat')
-    })
+    this._upgradeBtn.on('pointerdown', () => s.events.emit('upgradeSelectedCat'))
 
-    this._adoptBtn = s.add.rectangle(125, panelY + 14, 68, 22, 0x4e342e)
+    // Adopt button
+    this._adoptBtn = s.add.rectangle(125, panelY + 6, 68, 18, 0x4e342e)
       .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
       .setVisible(false)
 
-    this._adoptTxt = s.add.text(125, panelY + 14, '🏠 Adopt', {
+    this._adoptTxt = s.add.text(125, panelY + 6, '🏠 Adopt', {
       fontSize: '10px',
       fontFamily: 'monospace',
       color: '#ef9a9a',
     }).setScrollFactor(0).setDepth(11).setOrigin(0.5).setVisible(false)
 
-    this._adoptBtn.on('pointerdown', () => {
-      s.events.emit('adoptOutSelectedCat')
-    })
+    this._adoptBtn.on('pointerdown', () => s.events.emit('adoptOutSelectedCat'))
+
+    // Trigger button
+    this._triggerBtn = s.add.rectangle(90, panelY + 26, 148, 18, 0x7b1fa2)
+      .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
+      .setVisible(false)
+
+    this._triggerTxt = s.add.text(90, panelY + 26, '', {
+      fontSize: '10px',
+      fontFamily: 'monospace',
+      color: '#ce93d8',
+    }).setScrollFactor(0).setDepth(11).setOrigin(0.5).setVisible(false)
+
+    this._triggerBtn.on('pointerdown', () => s.events.emit('triggerSelectedCat'))
   }
 
   _bindEvents() {
@@ -353,7 +362,6 @@ export default class HUD {
       )
       this._dirtPct.setText(`${Math.round(ratio * 100)}%`)
 
-      // Pulse dirt meter when critically low
       if (ratio < 0.3 && !this._dirtPulsing) {
         this._dirtPulsing = true
         this.scene.tweens.add({
@@ -375,7 +383,6 @@ export default class HUD {
       this._btnBg.setVisible(false)
       this._btnText.setVisible(false)
 
-      // Wave announcement
       const announcement = this.scene.add.text(
         GAME.width / 2, GAME.height / 2 - 40,
         `WAVE ${wave}`,
@@ -412,20 +419,34 @@ export default class HUD {
         .setText(`${cat.name}${stars}\nDmg:${cat.damage} Rng:${cat.range}`)
         .setColor('#e0e0e0')
 
+      // Upgrade button
       if (upgCost) {
         this._upgradeTxt.setText(`⬆ ${upgCost}💰`)
         this._upgradeTxt.setColor(this.scraps >= upgCost ? '#90caf9' : '#ef5350')
-        this._upgradeBtn.setVisible(true)
-        this._upgradeTxt.setVisible(true)
       } else {
         this._upgradeTxt.setText('MAX ★★★★★')
         this._upgradeTxt.setColor('#ffd700')
-        this._upgradeBtn.setVisible(true)
-        this._upgradeTxt.setVisible(true)
       }
-
+      this._upgradeBtn.setVisible(true)
+      this._upgradeTxt.setVisible(true)
       this._adoptBtn.setVisible(true)
       this._adoptTxt.setVisible(true)
+
+      // Trigger button
+      if (cat.canTrigger()) {
+        const cooldownLeft = Math.ceil(cat._triggerCooldown / 1000)
+        const label = cooldownLeft > 0 ? `⚡ TRIGGER (${cooldownLeft}s)` : '⚡ TRIGGER!'
+        this._triggerTxt.setText(label)
+        this._triggerTxt.setColor(cat._triggerCooldown <= 0 ? '#ffd700' : '#546e7a')
+        this._triggerBtn.setVisible(true)
+        this._triggerTxt.setVisible(true)
+      } else if (cat.level >= 5 && !cat._hasTrigger()) {
+        this._triggerBtn.setVisible(false)
+        this._triggerTxt.setVisible(false)
+      } else {
+        this._triggerBtn.setVisible(false)
+        this._triggerTxt.setVisible(false)
+      }
     })
 
     this.scene.events.on('catDeselected', () => {
@@ -434,6 +455,21 @@ export default class HUD {
       this._upgradeTxt.setVisible(false)
       this._adoptBtn.setVisible(false)
       this._adoptTxt.setVisible(false)
+      this._triggerBtn.setVisible(false)
+      this._triggerTxt.setVisible(false)
+    })
+
+    // Trigger target mode — show crosshair prompt
+    this.scene.events.on('awaitingTriggerTarget', (cat) => {
+      this._awaitingTriggerTarget = true
+      this._triggerCat = cat
+      this._triggerTxt.setText('🎯 Click target on map...')
+      this._triggerTxt.setColor('#ff9800')
+    })
+
+    this.scene.events.on('triggerTargetCancelled', () => {
+      this._awaitingTriggerTarget = false
+      this._triggerCat = null
     })
   }
 }

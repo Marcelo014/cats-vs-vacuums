@@ -6,6 +6,8 @@ import HUD from '../ui/HUD.js'
 import WaveManager from '../entities/WaveManager.js'
 import { TEST_PATH_WAYPOINTS, ECONOMY, DIRT, GAME, CATS, SETTINGS } from '../config/GameConfig.js'
 
+const TARGETED_TRIGGERS = ['siamese', 'ragdoll', 'chonk']
+
 export default class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: 'GameScene' })
@@ -20,6 +22,8 @@ export default class GameScene extends Phaser.Scene {
     this._selectedCat = null
     this._placingCatType = 'kitten'
     this._gameOver = false
+    this._awaitingTriggerTarget = false
+    this._triggerCat = null
     this._VacuumClass = Vacuum
 
     this._pathRenderer = new PathRenderer(this, this.waypoints)
@@ -48,6 +52,12 @@ export default class GameScene extends Phaser.Scene {
     })
 
     this.events.on('catClicked', (cat) => {
+      if (this._awaitingTriggerTarget) {
+        this.events.emit('triggerTargetCancelled')
+        this._awaitingTriggerTarget = false
+        this._triggerCat = null
+        return
+      }
       this._selectCat(cat)
     })
 
@@ -64,6 +74,10 @@ export default class GameScene extends Phaser.Scene {
       this._adoptOutSelectedCat()
     })
 
+    this.events.on('triggerSelectedCat', () => {
+      this._handleTrigger()
+    })
+
     this.events.on('waveComplete', () => {
       if (SETTINGS.autoPlay) {
         this.time.delayedCall(1000, () => {
@@ -75,6 +89,16 @@ export default class GameScene extends Phaser.Scene {
     this.input.on('pointerdown', (pointer) => {
       const x = pointer.x
       const y = pointer.y
+
+      // Handle trigger target click
+      if (this._awaitingTriggerTarget) {
+        this._triggerCat.activateTrigger(x, y)
+        this._awaitingTriggerTarget = false
+        this._triggerCat = null
+        this.events.emit('triggerTargetCancelled')
+        return
+      }
+
       const cost = CATS[this._placingCatType].cost
       const newRadius = CATS[this._placingCatType].radius
 
@@ -83,7 +107,6 @@ export default class GameScene extends Phaser.Scene {
       if (this._pathRenderer.isOnPath(x, y)) return
       if (this.scraps < cost) return
 
-      // Only block if circles would actually overlap
       for (const cat of this.cats) {
         const dist = Math.hypot(cat.x - x, cat.y - y)
         if (dist < cat.placementRadius + newRadius) return
@@ -94,6 +117,21 @@ export default class GameScene extends Phaser.Scene {
       this.events.emit('scrapsChanged', this.scraps)
       new Cat(this, this._placingCatType, x, y)
     })
+  }
+
+  _handleTrigger() {
+    const cat = this._selectedCat
+    if (!cat || !cat.canTrigger()) return
+
+    if (TARGETED_TRIGGERS.includes(cat.type)) {
+      // Need a map click — enter targeting mode
+      this._awaitingTriggerTarget = true
+      this._triggerCat = cat
+      this.events.emit('awaitingTriggerTarget', cat)
+    } else {
+      // No target needed — fire immediately
+      cat.activateTrigger()
+    }
   }
 
   _triggerWin() {

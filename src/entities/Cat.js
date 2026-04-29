@@ -1,3 +1,4 @@
+import * as Phaser from 'phaser'
 import { CATS, UPGRADE_COSTS, SETTINGS } from '../config/GameConfig.js'
 
 export default class Cat {
@@ -10,8 +11,12 @@ export default class Cat {
     this._attackCooldown = 0
     this._target = null
     this.level = 0
+    this._tuxedoBuffed = false
+    this._basefireRate = null
+    this._tuxedoPulseActive = false
+    this.triggerReady = false
+    this._triggerCooldown = 0
 
-    // Load stats from config
     const config = CATS[type]
     this.name = config.name
     this.emoji = config.emoji
@@ -21,9 +26,6 @@ export default class Cat {
     this.fireRate = config.fireRate
     this.color = config.color
     this.radius = config.radius
-
-    // Placement radius is just the cat's own circle size
-    // Cats can be placed anywhere as long as their circles don't overlap
     this.placementRadius = this.radius
 
     // Graphics
@@ -89,6 +91,7 @@ export default class Cat {
       case 5:
         this.fireRate = Math.max(100, Math.round(this.fireRate * 0.7))
         this.damage = Math.round(this.damage * 1.5)
+        this.triggerReady = true
         break
     }
 
@@ -104,27 +107,38 @@ export default class Cat {
       duration: 400,
       onComplete: () => burst.destroy(),
     })
+
+    // Notify HUD to refresh
+    this.scene.events.emit('catSelected', this)
   }
 
   update(delta) {
     if (!this.alive) return
 
-    // Scale delta by game speed
     const scaledDelta = delta * SETTINGS.gameSpeed
 
     if (this._attackCooldown > 0) {
       this._attackCooldown -= scaledDelta
     }
 
-    // Tuxedo — buff adjacent cats instead of attacking
+    if (this._triggerCooldown > 0) {
+      this._triggerCooldown -= scaledDelta
+    }
+
+    // --- Tuxedo — buff adjacent cats ---
     if (this.type === 'tuxedo') {
       this._applyTuxedoBuff()
       return
     }
 
-    // Persian — apply slow aura to vacuums in range
+    // --- Persian — slow aura ---
     if (this.type === 'persian') {
       this._applyPersianSlow()
+    }
+
+    // --- Alley Cat — pack bonus ---
+    if (this.type === 'alley_cat') {
+      this._applyAlleyCatBonus()
     }
 
     if (!this._target || !this._target.alive) {
@@ -145,17 +159,26 @@ export default class Cat {
     for (const vacuum of this.scene.vacuums) {
       if (!vacuum.alive) continue
       if (vacuum.distanceTo(this.x, this.y) <= this.range) {
-        // Slow to 40% speed, refreshes every frame
         vacuum.applySlow(0.4, 500)
-
-        // Subtle purple tint on slowed vacuums
         vacuum.body.setFillStyle(0xce93d8)
       }
     }
   }
 
+  _applyAlleyCatBonus() {
+    // Count nearby alley cats
+    let nearbyCount = 0
+    for (const cat of this.scene.cats) {
+      if (cat === this) continue
+      if (cat.type !== 'alley_cat') continue
+      if (Math.hypot(cat.x - this.x, cat.y - this.y) <= 120) nearbyCount++
+    }
+
+    // Each nearby alley cat gives a 15% damage bonus — stored as a multiplier
+    this._alleyCatBonus = 1 + nearbyCount * 0.15
+  }
+
   _applyTuxedoBuff() {
-    // Buff range scales with level — Level 5 is map-wide
     const buffRange = this.level >= 5 ? 9999 : this.range
 
     for (const cat of this.scene.cats) {
@@ -163,15 +186,12 @@ export default class Cat {
       if (!cat.alive) continue
       const dist = Math.hypot(cat.x - this.x, cat.y - this.y)
       if (dist <= buffRange) {
-        // Apply a 25% fire rate boost — refreshes every frame
-        // We do this by temporarily reducing the attack cooldown
         if (!cat._tuxedoBuffed) {
           cat._tuxedoBuffed = true
           cat._basefireRate = cat._basefireRate || cat.fireRate
           cat.fireRate = Math.round(cat._basefireRate * 0.75)
         }
       } else {
-        // Out of range — remove buff
         if (cat._tuxedoBuffed) {
           cat._tuxedoBuffed = false
           cat.fireRate = cat._basefireRate || cat.fireRate
@@ -179,7 +199,6 @@ export default class Cat {
       }
     }
 
-    // Visual — subtle golden pulse on tuxedo
     if (!this._tuxedoPulseActive) {
       this._tuxedoPulseActive = true
       this.scene.tweens.add({
@@ -208,7 +227,18 @@ export default class Cat {
   }
 
   _attack(target) {
-    target.takeDamage(this.damage)
+    // Apply alley cat bonus if present
+    const bonusMultiplier = this._alleyCatBonus || 1
+    const finalDamage = Math.round(this.damage * bonusMultiplier)
+
+    if (this.type === 'chonk') {
+      this._chonkAOE(finalDamage)
+    } else if (this.type === 'ragdoll') {
+      this._ragdollBoomerang(finalDamage)
+    } else {
+      target.takeDamage(finalDamage)
+      this._spawnProjectile(target)
+    }
 
     this.scene.tweens.add({
       targets: this.body,
@@ -217,7 +247,9 @@ export default class Cat {
       duration: 80,
       yoyo: true,
     })
+  }
 
+  _spawnProjectile(target) {
     const proj = this.scene.add.circle(this.x, this.y, 4, this.color, 0.9)
     this.scene.tweens.add({
       targets: proj,
@@ -225,6 +257,317 @@ export default class Cat {
       y: target.container.y,
       duration: 150,
       onComplete: () => proj.destroy(),
+    })
+  }
+
+  _chonkAOE() {
+    // Shockwave hits ALL vacuums in range
+    const shockwave = this.scene.add.circle(this.x, this.y, this.range, this.color, 0.3)
+    this.scene.tweens.add({
+      targets: shockwave,
+      scaleX: 1.4,
+      scaleY: 1.4,
+      alpha: 0,
+      duration: 400,
+      ease: 'Quad.easeOut',
+      onComplete: () => shockwave.destroy(),
+    })
+
+    for (const vacuum of this.scene.vacuums) {
+      if (!vacuum.alive) continue
+      if (vacuum.distanceTo(this.x, this.y) <= this.range) {
+        vacuum.takeDamage(this.damage)
+      }
+    }
+  }
+
+  _ragdollBoomerang(finalDamage) {
+    // Launch self as arc across the path, hit everything along the way
+    // Distance bonus — more damage further from target
+    const target = this._target
+    if (!target) return
+
+    const dist = Math.hypot(target.container.x - this.x, target.container.y - this.y)
+    const distBonus = Math.min(2.0, 1 + dist / 400)
+    const boostedDamage = Math.round(finalDamage * distBonus)
+
+    // Visual arc
+    const arc = this.scene.add.circle(this.x, this.y, this.radius, this.color, 0.8)
+    const midX = (this.x + target.container.x) / 2
+    const midY = Math.min(this.y, target.container.y) - 80
+
+    this.scene.tweens.add({
+      targets: arc,
+      x: midX,
+      y: midY,
+      duration: 180,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        this.scene.tweens.add({
+          targets: arc,
+          x: target.container.x,
+          y: target.container.y,
+          duration: 180,
+          ease: 'Quad.easeIn',
+          onComplete: () => {
+            // Hit all vacuums near the landing point
+            for (const vacuum of this.scene.vacuums) {
+              if (!vacuum.alive) continue
+              if (vacuum.distanceTo(target.container.x, target.container.y) <= 60) {
+                vacuum.takeDamage(boostedDamage)
+              }
+            }
+            // Boomerang back
+            this.scene.tweens.add({
+              targets: arc,
+              x: this.x,
+              y: this.y,
+              duration: 250,
+              ease: 'Quad.easeOut',
+              onComplete: () => arc.destroy(),
+            })
+          }
+        })
+      }
+    })
+  }
+
+  // -----------------------------------------------------------
+  // Triggerables
+  // -----------------------------------------------------------
+
+  canTrigger() {
+    return this.level >= 5 && this._triggerCooldown <= 0 && this._hasTrigger()
+  }
+
+  _hasTrigger() {
+    return ['kitten', 'persian', 'siamese', 'bengal', 'ragdoll', 'chonk'].includes(this.type)
+  }
+
+  activateTrigger(targetX = null, targetY = null) {
+    if (!this.canTrigger()) return
+
+    switch (this.type) {
+      case 'kitten':
+        this._triggerKitten()
+        break
+      case 'persian':
+        this._triggerPersian()
+        break
+      case 'siamese':
+        this._triggerSiamese(targetX, targetY)
+        break
+      case 'bengal':
+        this._triggerBengal()
+        break
+      case 'ragdoll':
+        this._triggerRagdoll(targetX, targetY)
+        break
+      case 'chonk':
+        this._triggerChonk(targetX, targetY)
+        break
+    }
+
+    this._triggerCooldown = 15000 // 15 second cooldown for all triggerables
+    this.scene.events.emit('catSelected', this)
+  }
+
+  _triggerKitten() {
+    // All Level 5 kittens rapid swipe for 3 seconds
+    const kittens = this.scene.cats.filter(c => c.type === 'kitten' && c.level >= 5).slice(0, 10)
+    kittens.forEach(k => {
+      const originalFireRate = k.fireRate
+      k.fireRate = 80
+      this.scene.tweens.add({
+        targets: k.body,
+        fillColor: 0xff4444,
+        duration: 200,
+        yoyo: true,
+        repeat: 7,
+      })
+      this.scene.time.delayedCall(3000, () => {
+        k.fireRate = originalFireRate
+      })
+    })
+    this._showTriggerText(this.x, this.y, '⚡ RAPID SWIPE!')
+  }
+
+  _triggerPersian() {
+    // Shield wall on path — damages vacuums passing through for 5 seconds
+    const shield = this.scene.add.rectangle(
+      this.scene.waypoints[Math.floor(this.scene.waypoints.length / 2)].x,
+      this.scene.waypoints[Math.floor(this.scene.waypoints.length / 2)].y,
+      20, 80, 0xce93d8, 0.7
+    ).setDepth(5)
+
+    const interval = this.scene.time.addEvent({
+      delay: 300,
+      repeat: 16,
+      callback: () => {
+        for (const vacuum of this.scene.vacuums) {
+          if (!vacuum.alive) continue
+          if (vacuum.distanceTo(shield.x, shield.y) <= 60) {
+            vacuum.takeDamage(this.damage * 2)
+          }
+        }
+      }
+    })
+
+    this.scene.time.delayedCall(5000, () => {
+      shield.destroy()
+    })
+
+    this._showTriggerText(this.x, this.y, '🛡️ SHIELD WALL!')
+  }
+
+  _triggerSiamese(tx, ty) {
+    // Sticky hairball rolls from target back toward start dragging vacuums
+    if (tx === null) return
+    const ball = this.scene.add.circle(tx, ty, 12, 0xdce8f0, 0.9).setDepth(5)
+    const startWp = this.scene.waypoints[0]
+
+    this.scene.tweens.add({
+      targets: ball,
+      x: startWp.x,
+      y: startWp.y,
+      duration: 3000,
+      ease: 'Linear',
+      onUpdate: () => {
+        for (const vacuum of this.scene.vacuums) {
+          if (!vacuum.alive) continue
+          if (vacuum.distanceTo(ball.x, ball.y) <= 30) {
+            vacuum.container.x = ball.x
+            vacuum.container.y = ball.y
+            vacuum.takeDamage(5)
+          }
+        }
+      },
+      onComplete: () => ball.destroy(),
+    })
+    this._showTriggerText(this.x, this.y, '🎱 STICKY HAIRBALL!')
+  }
+
+  _triggerBengal() {
+    // 15 seconds of dramatically faster attacks and damage boost
+    const originalFireRate = this.fireRate
+    const originalDamage = this.damage
+    this.fireRate = Math.round(this.fireRate * 0.25)
+    this.damage = Math.round(this.damage * 2)
+
+    this.scene.tweens.add({
+      targets: this.body,
+      alpha: 0.5,
+      duration: 100,
+      yoyo: true,
+      repeat: 75,
+    })
+
+    this.scene.time.delayedCall(15000, () => {
+      this.fireRate = originalFireRate
+      this.damage = originalDamage
+    })
+    this._showTriggerText(this.x, this.y, '🔥 SPEED FRENZY!')
+  }
+
+  _triggerRagdoll(tx, ty) {
+    // Massive arc across entire section
+    if (tx === null) return
+    const arc = this.scene.add.circle(this.x, this.y, this.radius * 1.5, this.color, 0.9)
+    const midX = (this.x + tx) / 2
+    const midY = Math.min(this.y, ty) - 150
+
+    this.scene.tweens.add({
+      targets: arc,
+      x: midX,
+      y: midY,
+      duration: 250,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        this.scene.tweens.add({
+          targets: arc,
+          x: tx,
+          y: ty,
+          duration: 250,
+          ease: 'Quad.easeIn',
+          onComplete: () => {
+            // Hit everything in a wide radius
+            for (const vacuum of this.scene.vacuums) {
+              if (!vacuum.alive) continue
+              if (vacuum.distanceTo(tx, ty) <= 120) {
+                vacuum.takeDamage(this.damage * 3)
+              }
+            }
+            this.scene.tweens.add({
+              targets: arc,
+              x: this.x,
+              y: this.y,
+              duration: 300,
+              onComplete: () => arc.destroy(),
+            })
+          }
+        })
+      }
+    })
+    this._showTriggerText(this.x, this.y, '🌙 MEGA ARC!')
+  }
+
+  _triggerChonk(tx, ty) {
+    // Drop from above — shadow appears then Chonk slams down
+    if (tx === null) return
+
+    const shadow = this.scene.add.ellipse(tx, ty, 60, 30, 0x000000, 0.4).setDepth(4)
+    const bomb = this.scene.add.text(tx, ty - 300, '🐾', {
+      fontSize: '48px'
+    }).setOrigin(0.5).setDepth(6)
+
+    this.scene.tweens.add({
+      targets: bomb,
+      y: ty,
+      duration: 600,
+      ease: 'Quad.easeIn',
+      onComplete: () => {
+        bomb.destroy()
+        shadow.destroy()
+        this.scene.cameras.main.shake(400, 0.015)
+
+        // Massive AOE
+        const blast = this.scene.add.circle(tx, ty, 100, this.color, 0.4).setDepth(5)
+        this.scene.tweens.add({
+          targets: blast,
+          scaleX: 2,
+          scaleY: 2,
+          alpha: 0,
+          duration: 500,
+          onComplete: () => blast.destroy(),
+        })
+
+        for (const vacuum of this.scene.vacuums) {
+          if (!vacuum.alive) continue
+          if (vacuum.distanceTo(tx, ty) <= 100) {
+            vacuum.takeDamage(this.damage * 4)
+            vacuum.applySlow(0.1, 3000)
+          }
+        }
+      }
+    })
+    this._showTriggerText(this.x, this.y, '💥 BOMB DROP!')
+  }
+
+  _showTriggerText(x, y, msg) {
+    const txt = this.scene.add.text(x, y - 40, msg, {
+      fontSize: '16px',
+      fontFamily: 'monospace',
+      color: '#ffd700',
+      stroke: '#000000',
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(20)
+
+    this.scene.tweens.add({
+      targets: txt,
+      y: y - 100,
+      alpha: 0,
+      duration: 1500,
+      onComplete: () => txt.destroy(),
     })
   }
 
@@ -236,7 +579,6 @@ export default class Cat {
 
   destroy() {
     this.alive = false
-    // Remove tuxedo buff if this was a tuxedo
     if (this.type === 'tuxedo') {
       for (const cat of this.scene.cats) {
         if (cat._tuxedoBuffed) {

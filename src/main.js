@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser'
 import MainMenuScene from './scenes/MainMenuScene.js'
+import LevelSelectScene from './scenes/LevelSelectScene.js'
 import GameScene from './scenes/GameScene.js'
 import ResultScene from './scenes/ResultScene.js'
 
@@ -9,7 +10,7 @@ const config = {
   height: 720,
   backgroundColor: '#1a1a2e',
   parent: 'game-container',
-  scene: [MainMenuScene, GameScene, ResultScene],
+  scene: [MainMenuScene, LevelSelectScene, GameScene, ResultScene],
 }
 
 new Phaser.Game(config)

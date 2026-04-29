@@ -10,10 +10,8 @@ export default class MainMenuScene extends Phaser.Scene {
     const W = GAME.width
     const H = GAME.height
 
-    // Background
     this.add.rectangle(W / 2, H / 2, W, H, 0x0a0a16)
 
-    // Star field
     for (let i = 0; i < 80; i++) {
       const x = Phaser.Math.Between(0, W)
       const y = Phaser.Math.Between(0, H)
@@ -21,12 +19,10 @@ export default class MainMenuScene extends Phaser.Scene {
       this.add.circle(x, y, r, 0xffffff, Phaser.Math.FloatBetween(0.1, 0.4))
     }
 
-    // Cat watching from the right
     const catWatcher = this.add.text(W - 120, H - 140, '😾', {
       fontSize: '64px',
     }).setOrigin(0.5)
 
-    // Zoomba slowly crossing the screen
     const zoomba = this.add.circle(-30, H - 90, 20, 0xbdbdbd)
     const zoombaLabel = this.add.text(-30, H - 90, '🤖', {
       fontSize: '24px',
@@ -44,7 +40,6 @@ export default class MainMenuScene extends Phaser.Scene {
       },
     })
 
-    // Cat head tracks the zoomba
     this.tweens.add({
       targets: catWatcher,
       x: W - 160,
@@ -54,7 +49,6 @@ export default class MainMenuScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
     })
 
-    // Title
     this.add.text(W / 2, 160, 'CATS', {
       fontSize: '110px',
       fontFamily: 'monospace',
@@ -85,17 +79,14 @@ export default class MainMenuScene extends Phaser.Scene {
       color: '#78909c',
     }).setOrigin(0.5)
 
-    // Play button
     this._makeButton(W / 2, 530, '▶  PLAY', '#a5d6a7', 0x1b5e20, () => {
-      this.scene.start('GameScene')
+      this.scene.start('LevelSelectScene')
     })
 
-    // How to play button
     this._makeButton(W / 2, 590, '?  HOW TO PLAY', '#b0bec5', 0x1a237e, () => {
       this._showHowToPlay()
     })
 
-    // Version tag
     this.add.text(W - 12, H - 12, 'v0.1 — Week 1 Build', {
       fontSize: '10px',
       fontFamily: 'monospace',
@@ -142,6 +133,7 @@ export default class MainMenuScene extends Phaser.Scene {
       '▶   Press NEXT WAVE to start each wave.',
       '❌  You cannot place cats on the vacuum path.',
       '🏠  Adopt out a cat to remove it and recover 10% of its cost.',
+      '⚡  Level 5 cats unlock a TRIGGERABLE special ability.',
       '',
       'Tip: Place Persians to slow vacuums, Bengals for long range damage.',
     ]
@@ -161,10 +153,9 @@ export default class MainMenuScene extends Phaser.Scene {
     }).setOrigin(0.5).setInteractive({ useHandCursor: true })
 
     const cleanup = () => {
-      [overlay, panel, closeBtn].forEach(o => o.destroy())
-      this.children.list
-        .filter(c => c._howToPlay)
-        .forEach(c => c.destroy())
+      overlay.destroy()
+      panel.destroy()
+      closeBtn.destroy()
     }
 
     closeBtn.on('pointerdown', cleanup)
