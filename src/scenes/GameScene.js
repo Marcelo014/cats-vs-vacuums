@@ -19,6 +19,7 @@ export default class GameScene extends Phaser.Scene {
     this.dirt = DIRT.maxDirt
     this._selectedCat = null
     this._placingCatType = 'kitten'
+    this._gameOver = false
     this._VacuumClass = Vacuum
 
     this._pathRenderer = new PathRenderer(this, this.waypoints)
@@ -35,6 +36,7 @@ export default class GameScene extends Phaser.Scene {
       this.dirt = Math.max(0, this.dirt - dirtLost)
       this.events.emit('dirtChanged', this.dirt)
       this.cameras.main.shake(200, 0.008)
+      if (this.dirt <= 0) this._triggerLose()
     })
 
     this.events.on('startNextWave', () => {
@@ -42,11 +44,7 @@ export default class GameScene extends Phaser.Scene {
     })
 
     this.events.on('allWavesComplete', () => {
-      this.add.text(GAME.width / 2, GAME.height / 2, '🎉 You Win!', {
-        fontSize: '64px',
-        fontFamily: 'monospace',
-        color: '#a5d6a7',
-      }).setOrigin(0.5).setDepth(20)
+      this._triggerWin()
     })
 
     this.events.on('catClicked', (cat) => {
@@ -88,6 +86,23 @@ export default class GameScene extends Phaser.Scene {
     })
   }
 
+  _triggerWin() {
+    if (this._gameOver) return
+    this._gameOver = true
+    this.time.delayedCall(1000, () => {
+      this.scene.start('ResultScene', { result: 'win', scraps: this.scraps })
+    })
+  }
+
+  _triggerLose() {
+    if (this._gameOver) return
+    this._gameOver = true
+    this.cameras.main.shake(500, 0.02)
+    this.time.delayedCall(2000, () => {
+      this.scene.start('ResultScene', { result: 'lose', scraps: this.scraps })
+    })
+  }
+
   _selectCat(cat) {
     this._deselectCat()
     this._selectedCat = cat
@@ -106,11 +121,9 @@ export default class GameScene extends Phaser.Scene {
   _upgradeSelectedCat() {
     const cat = this._selectedCat
     if (!cat) return
-
     const cost = cat.upgradeCost
     if (!cost) return
     if (this.scraps < cost) return
-
     this.scraps -= cost
     this.events.emit('scrapsChanged', this.scraps)
     cat.upgrade()
@@ -129,6 +142,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+    if (this._gameOver) return
+
     for (let i = this.vacuums.length - 1; i >= 0; i--) {
       this.vacuums[i].update(delta)
     }

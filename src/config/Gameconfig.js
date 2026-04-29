@@ -24,7 +24,71 @@ export const TEST_PATH_WAYPOINTS = [
 ]
 
 export const UPGRADE_COSTS = [75, 125, 200, 350, 500]
-// Tuxedo level 5 overridden to 1000 in Cat.js
+
+export const VACUUMS = {
+  zoomba: {
+    name: 'Zoomba',
+    emoji: '🤖',
+    hp: 80,
+    speed: 80,
+    dirtDamage: 10,
+    scrapDrop: 10,
+    color: 0xbdbdbd,
+    radius: 16,
+  },
+  turbo_zoomba: {
+    name: 'Turbo Zoomba',
+    emoji: '💨',
+    hp: 40,
+    speed: 180,
+    dirtDamage: 10,
+    scrapDrop: 15,
+    color: 0x42a5f5,
+    radius: 14,
+  },
+  aquaclean: {
+    name: 'Aquaclean',
+    emoji: '💧',
+    hp: 200,
+    speed: 150,
+    dirtDamage: 15,
+    scrapDrop: 20,
+    color: 0x26c6da,
+    radius: 18,
+  },
+  gulper: {
+    name: 'Gulper',
+    emoji: '😈',
+    hp: 300,
+    speed: 50,
+    dirtDamage: 20,
+    scrapDrop: 25,
+    spawnsOnDeath: 3,
+    color: 0xef5350,
+    radius: 24,
+  },
+  phantavac: {
+    name: 'Phantavac',
+    emoji: '👻',
+    hp: 120,
+    speed: 90,
+    dirtDamage: 10,
+    scrapDrop: 20,
+    immune: ['hairball'],
+    color: 0xab47bc,
+    radius: 16,
+  },
+  megaclean: {
+    name: 'Megaclean',
+    emoji: '💀',
+    hp: 2000,
+    speed: 20,
+    dirtDamage: 50,
+    scrapDrop: 100,
+    color: 0xffd700,
+    radius: 40,
+  },
+}
 
 export const CATS = {
   kitten: {
