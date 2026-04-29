@@ -1,3 +1,5 @@
+import { CATS } from '../config/GameConfig.js'
+
 export default class Cat {
   constructor(scene, type, x, y) {
     this.scene = scene
@@ -7,11 +9,18 @@ export default class Cat {
     this.alive = true
     this._attackCooldown = 0
     this._target = null
+    this.placementRadius = 30
 
-    // Stats
-    this.damage = 15
-    this.range = 80
-    this.fireRate = 600
+    // Load stats from config
+    const config = CATS[type]
+    this.name = config.name
+    this.emoji = config.emoji
+    this.cost = config.cost
+    this.damage = config.damage
+    this.range = config.range
+    this.fireRate = config.fireRate
+    this.color = config.color
+    this.radius = config.radius
 
     // Graphics
     this.container = scene.add.container(x, y)
@@ -20,16 +29,24 @@ export default class Cat {
     this.rangeCircle.setStrokeStyle(1, 0xffffff, 0.2)
     this.rangeCircle.setVisible(false)
 
-    this.body = scene.add.circle(0, 0, 18, 0xf9a825)
+    this.body = scene.add.circle(0, 0, this.radius, this.color)
     this.body.setStrokeStyle(2, 0xffffff, 0.4)
 
-    this.label = scene.add.text(0, 0, '🐱', { fontSize: '18px' }).setOrigin(0.5)
+    this.label = scene.add.text(0, 0, this.emoji, {
+      fontSize: `${this.radius}px`
+    }).setOrigin(0.5)
 
     this.container.add([this.rangeCircle, this.body, this.label])
 
     this.body.setInteractive({ useHandCursor: true })
     this.body.on('pointerover', () => this.rangeCircle.setVisible(true))
-    this.body.on('pointerout', () => this.rangeCircle.setVisible(false))
+    this.body.on('pointerout', () => {
+      if (!this.selected) this.rangeCircle.setVisible(false)
+    })
+    this.body.on('pointerdown', (pointer) => {
+      pointer.event.stopPropagation()
+      scene.events.emit('catClicked', this)
+    })
 
     scene.cats.push(this)
   }
@@ -81,8 +98,7 @@ export default class Cat {
       yoyo: true,
     })
 
-    // Projectile visual
-    const proj = this.scene.add.circle(this.x, this.y, 4, 0xffffff, 0.9)
+    const proj = this.scene.add.circle(this.x, this.y, 4, this.color, 0.9)
     this.scene.tweens.add({
       targets: proj,
       x: target.container.x,
@@ -90,5 +106,18 @@ export default class Cat {
       duration: 150,
       onComplete: () => proj.destroy(),
     })
+  }
+
+  setSelected(selected) {
+    this.selected = selected
+    this.rangeCircle.setVisible(selected)
+    this.body.setStrokeStyle(2, selected ? 0x00ff88 : 0xffffff, selected ? 1 : 0.4)
+  }
+
+  destroy() {
+    this.alive = false
+    const idx = this.scene.cats.indexOf(this)
+    if (idx !== -1) this.scene.cats.splice(idx, 1)
+    this.container.destroy()
   }
 }

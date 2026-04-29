@@ -4,7 +4,7 @@ import Vacuum from '../entities/Vacuum.js'
 import Cat from '../entities/Cat.js'
 import HUD from '../ui/HUD.js'
 import WaveManager from '../entities/WaveManager.js'
-import { TEST_PATH_WAYPOINTS, ECONOMY, DIRT, GAME } from '../config/GameConfig.js'
+import { TEST_PATH_WAYPOINTS, ECONOMY, DIRT, GAME, CATS } from '../config/GameConfig.js'
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -17,15 +17,14 @@ export default class GameScene extends Phaser.Scene {
     this.waypoints = TEST_PATH_WAYPOINTS
     this.scraps = ECONOMY.startingScraps
     this.dirt = DIRT.maxDirt
-
-    // Expose Vacuum class so WaveManager can spawn them
+    this._selectedCat = null
+    this._placingCatType = 'kitten'
     this._VacuumClass = Vacuum
 
     this._pathRenderer = new PathRenderer(this, this.waypoints)
     this._hud = new HUD(this, this.scraps)
     this._waveManager = new WaveManager(this, this.waypoints)
 
-    // Vacuum events
     this.events.on('vacuumKilled', (scrapsEarned, pos) => {
       this.scraps += scrapsEarned
       this._spawnScrapText(pos.x, pos.y, scrapsEarned)
@@ -38,7 +37,6 @@ export default class GameScene extends Phaser.Scene {
       this.cameras.main.shake(200, 0.008)
     })
 
-    // Wave events
     this.events.on('startNextWave', () => {
       this._waveManager.startNextWave()
     })
@@ -51,20 +49,78 @@ export default class GameScene extends Phaser.Scene {
       }).setOrigin(0.5).setDepth(20)
     })
 
-    // Click to place cat
+    this.events.on('catClicked', (cat) => {
+      this._selectCat(cat)
+    })
+
+    this.events.on('catTypeSelected', (type) => {
+      this._placingCatType = type
+      this._deselectCat()
+    })
+
+    this.events.on('upgradeSelectedCat', () => {
+      this._upgradeSelectedCat()
+    })
+
+    this.events.on('adoptOutSelectedCat', () => {
+      this._adoptOutSelectedCat()
+    })
+
     this.input.on('pointerdown', (pointer) => {
       const x = pointer.x
       const y = pointer.y
-      const cost = 50
+      const cost = CATS[this._placingCatType].cost
 
-      if (pointer.y > GAME.height - 60) return
+      if (pointer.y > GAME.height - 70) return
+      if (pointer.y < 10) return
       if (this._pathRenderer.isOnPath(x, y)) return
       if (this.scraps < cost) return
 
+      for (const cat of this.cats) {
+        const dist = Math.hypot(cat.x - x, cat.y - y)
+        if (dist < cat.placementRadius + 30) return
+      }
+
+      this._deselectCat()
       this.scraps -= cost
       this.events.emit('scrapsChanged', this.scraps)
-      new Cat(this, 'kitten', x, y)
+      new Cat(this, this._placingCatType, x, y)
     })
+  }
+
+  _selectCat(cat) {
+    this._deselectCat()
+    this._selectedCat = cat
+    cat.setSelected(true)
+    this.events.emit('catSelected', cat)
+  }
+
+  _deselectCat() {
+    if (this._selectedCat) {
+      this._selectedCat.setSelected(false)
+      this._selectedCat = null
+      this.events.emit('catDeselected')
+    }
+  }
+
+  _upgradeSelectedCat() {
+    if (!this._selectedCat) return
+    const upgradeCost = 75
+    if (this.scraps < upgradeCost) return
+    this.scraps -= upgradeCost
+    this.events.emit('scrapsChanged', this.scraps)
+    console.log('upgraded cat')
+  }
+
+  _adoptOutSelectedCat() {
+    if (!this._selectedCat) return
+    const refund = Math.floor(this._selectedCat.cost * 0.1)
+    this.scraps += refund
+    this.events.emit('scrapsChanged', this.scraps)
+    this._spawnScrapText(this._selectedCat.x, this._selectedCat.y, refund)
+    this._selectedCat.destroy()
+    this._selectedCat = null
+    this.events.emit('catDeselected')
   }
 
   update(time, delta) {
