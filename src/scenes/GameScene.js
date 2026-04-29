@@ -104,12 +104,17 @@ export default class GameScene extends Phaser.Scene {
   }
 
   _upgradeSelectedCat() {
-    if (!this._selectedCat) return
-    const upgradeCost = 75
-    if (this.scraps < upgradeCost) return
-    this.scraps -= upgradeCost
+    const cat = this._selectedCat
+    if (!cat) return
+
+    const cost = cat.upgradeCost
+    if (!cost) return
+    if (this.scraps < cost) return
+
+    this.scraps -= cost
     this.events.emit('scrapsChanged', this.scraps)
-    console.log('upgraded cat')
+    cat.upgrade()
+    this.events.emit('catSelected', cat)
   }
 
   _adoptOutSelectedCat() {

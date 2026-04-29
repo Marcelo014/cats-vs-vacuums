@@ -1,4 +1,4 @@
-import { CATS } from '../config/GameConfig.js'
+import { CATS, UPGRADE_COSTS } from '../config/GameConfig.js'
 
 export default class Cat {
   constructor(scene, type, x, y) {
@@ -10,6 +10,7 @@ export default class Cat {
     this._attackCooldown = 0
     this._target = null
     this.placementRadius = 30
+    this.level = 0
 
     // Load stats from config
     const config = CATS[type]
@@ -36,7 +37,13 @@ export default class Cat {
       fontSize: `${this.radius}px`
     }).setOrigin(0.5)
 
-    this.container.add([this.rangeCircle, this.body, this.label])
+    this.levelText = scene.add.text(0, this.radius + 6, '', {
+      fontSize: '10px',
+      fontFamily: 'monospace',
+      color: '#ffffff',
+    }).setOrigin(0.5, 0)
+
+    this.container.add([this.rangeCircle, this.body, this.label, this.levelText])
 
     this.body.setInteractive({ useHandCursor: true })
     this.body.on('pointerover', () => this.rangeCircle.setVisible(true))
@@ -49,6 +56,53 @@ export default class Cat {
     })
 
     scene.cats.push(this)
+  }
+
+  get upgradeCost() {
+    if (this.level >= 5) return null
+    if (this.type === 'tuxedo' && this.level === 4) return 1000
+    return UPGRADE_COSTS[this.level]
+  }
+
+  upgrade() {
+    if (this.level >= 5) return
+
+    this.level++
+
+    switch (this.level) {
+      case 1:
+        this.fireRate = Math.max(100, Math.round(this.fireRate * 0.85))
+        break
+      case 2:
+        this.damage = Math.round(this.damage * 1.3)
+        break
+      case 3:
+        this.range = Math.round(this.range * 1.2)
+        this.rangeCircle.setRadius(this.range)
+        break
+      case 4:
+        this.damage = Math.round(this.damage * 1.5)
+        break
+      case 5:
+        this.fireRate = Math.max(100, Math.round(this.fireRate * 0.7))
+        this.damage = Math.round(this.damage * 1.5)
+        break
+    }
+
+    // Update level stars
+    this.levelText.setText('★'.repeat(this.level))
+    this.levelText.setColor(this.level >= 4 ? '#ffd700' : '#ffffff')
+
+    // Burst effect
+    const burst = this.scene.add.circle(this.x, this.y, this.radius * 2, 0xffd700, 0.5)
+    this.scene.tweens.add({
+      targets: burst,
+      scaleX: 3,
+      scaleY: 3,
+      alpha: 0,
+      duration: 400,
+      onComplete: () => burst.destroy(),
+    })
   }
 
   update(delta) {

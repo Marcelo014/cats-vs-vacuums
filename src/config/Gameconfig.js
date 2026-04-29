@@ -9,7 +9,7 @@ export const DIRT = {
 }
 
 export const ECONOMY = {
-  startingScraps: 200,
+  startingScraps: 99999,
 }
 
 export const TEST_PATH_WAYPOINTS = [
@@ -22,6 +22,9 @@ export const TEST_PATH_WAYPOINTS = [
   { x: 950,  y: 360 },
   { x: 1280, y: 360 },
 ]
+
+export const UPGRADE_COSTS = [75, 125, 200, 350, 500]
+// Tuxedo level 5 overridden to 1000 in Cat.js
 
 export const CATS = {
   kitten: {

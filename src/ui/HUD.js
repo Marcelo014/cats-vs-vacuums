@@ -111,7 +111,6 @@ export default class HUD {
     const btnW = 88
     const startX = 200
 
-    // Panel background
     s.add.rectangle(W / 2, panelY, W, 72, 0x0d0d1a, 0.95)
       .setScrollFactor(0).setDepth(9)
 
@@ -137,7 +136,6 @@ export default class HUD {
         if (this._selectedBtn !== btn) btn.setFillStyle(0x1a1a2e)
       })
       btn.on('pointerdown', () => {
-        // Deselect previous
         if (this._selectedBtn) this._selectedBtn.setFillStyle(0x1a1a2e)
         this._selectedBtn = btn
         btn.setFillStyle(0x1b5e20)
@@ -147,7 +145,6 @@ export default class HUD {
       this._catBtns.push(btn)
     })
 
-    // Select kitten by default
     this._selectedBtn = this._catBtns[0]
     this._catBtns[0].setFillStyle(0x1b5e20)
   }
@@ -157,23 +154,21 @@ export default class HUD {
     const H = GAME.height
     const panelY = H - 36
 
-    // Background
     s.add.rectangle(90, panelY, 160, 72, 0x0d0d1a, 0.95)
       .setScrollFactor(0).setDepth(9)
 
-    this._selectedCatText = s.add.text(90, panelY - 14, 'Click a cat\nto select', {
+    this._selectedCatText = s.add.text(90, panelY - 16, 'Click a cat\nto select', {
       fontSize: '11px',
       fontFamily: 'monospace',
       color: '#78909c',
       align: 'center',
     }).setScrollFactor(0).setDepth(11).setOrigin(0.5)
 
-    // Upgrade button
     this._upgradeBtn = s.add.rectangle(55, panelY + 14, 68, 22, 0x1a237e)
       .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
       .setVisible(false)
 
-    this._upgradeTxt = s.add.text(55, panelY + 14, '⬆ Upgrade', {
+    this._upgradeTxt = s.add.text(55, panelY + 14, '', {
       fontSize: '10px',
       fontFamily: 'monospace',
       color: '#90caf9',
@@ -183,7 +178,6 @@ export default class HUD {
       s.events.emit('upgradeSelectedCat')
     })
 
-    // Adopt out button
     this._adoptBtn = s.add.rectangle(125, panelY + 14, 68, 22, 0x4e342e)
       .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
       .setVisible(false)
@@ -230,10 +224,25 @@ export default class HUD {
     })
 
     this.scene.events.on('catSelected', (cat) => {
-      this._selectedCatText.setText(`${cat.type}\nCost: ${cat.cost}💰`)
+      const upgCost = cat.upgradeCost
+      const stars = cat.level > 0 ? ' ' + '★'.repeat(cat.level) : ''
+
+      this._selectedCatText
+        .setText(`${cat.name}${stars}\nDmg:${cat.damage} Rng:${cat.range}`)
         .setColor('#e0e0e0')
-      this._upgradeBtn.setVisible(true)
-      this._upgradeTxt.setVisible(true)
+
+      if (upgCost) {
+        this._upgradeTxt.setText(`⬆ ${upgCost}💰`)
+        this._upgradeTxt.setColor(this.scraps >= upgCost ? '#90caf9' : '#ef5350')
+        this._upgradeBtn.setVisible(true)
+        this._upgradeTxt.setVisible(true)
+      } else {
+        this._upgradeTxt.setText('MAX ★★★★★')
+        this._upgradeTxt.setColor('#ffd700')
+        this._upgradeBtn.setVisible(true)
+        this._upgradeTxt.setVisible(true)
+      }
+
       this._adoptBtn.setVisible(true)
       this._adoptTxt.setVisible(true)
     })
