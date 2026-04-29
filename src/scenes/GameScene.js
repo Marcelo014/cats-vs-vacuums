@@ -4,7 +4,7 @@ import Vacuum from '../entities/Vacuum.js'
 import Cat from '../entities/Cat.js'
 import HUD from '../ui/HUD.js'
 import WaveManager from '../entities/WaveManager.js'
-import { TEST_PATH_WAYPOINTS, ECONOMY, DIRT, GAME, CATS } from '../config/GameConfig.js'
+import { TEST_PATH_WAYPOINTS, ECONOMY, DIRT, GAME, CATS, SETTINGS } from '../config/GameConfig.js'
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -64,19 +64,29 @@ export default class GameScene extends Phaser.Scene {
       this._adoptOutSelectedCat()
     })
 
+    this.events.on('waveComplete', () => {
+      if (SETTINGS.autoPlay) {
+        this.time.delayedCall(1000, () => {
+          this._waveManager.startNextWave()
+        })
+      }
+    })
+
     this.input.on('pointerdown', (pointer) => {
       const x = pointer.x
       const y = pointer.y
       const cost = CATS[this._placingCatType].cost
+      const newRadius = CATS[this._placingCatType].radius
 
       if (pointer.y > GAME.height - 70) return
       if (pointer.y < 10) return
       if (this._pathRenderer.isOnPath(x, y)) return
       if (this.scraps < cost) return
 
+      // Only block if circles would actually overlap
       for (const cat of this.cats) {
         const dist = Math.hypot(cat.x - x, cat.y - y)
-        if (dist < cat.placementRadius + 30) return
+        if (dist < cat.placementRadius + newRadius) return
       }
 
       this._deselectCat()

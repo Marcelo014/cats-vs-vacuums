@@ -1,4 +1,5 @@
-import { VACUUMS } from '../config/GameConfig.js'
+import { VACUUMS, SETTINGS } from '../config/GameConfig.js'
+import * as Phaser from 'phaser'
 
 export default class Vacuum {
   constructor(scene, type, waypoints) {
@@ -44,6 +45,9 @@ export default class Vacuum {
   update(delta) {
     if (!this.alive || this.reachedEnd) return
 
+    // Scale movement by game speed
+    const scaledDelta = delta * SETTINGS.gameSpeed
+
     const target = this.waypoints[this.waypointIndex]
     if (!target) {
       this._reachEnd()
@@ -54,7 +58,7 @@ export default class Vacuum {
     const dy = target.y - this.container.y
     const dist = Math.sqrt(dx * dx + dy * dy)
     const effectiveSpeed = this.speed * this.slowMultiplier
-    const step = (effectiveSpeed * delta) / 1000
+    const step = (effectiveSpeed * scaledDelta) / 1000
 
     if (dist <= step) {
       this.container.x = target.x
@@ -68,7 +72,6 @@ export default class Vacuum {
       this.container.y += (dy / dist) * step
     }
 
-    // Update hp bar
     const ratio = this.hp / this.maxHp
     this.hpBar.width = 40 * ratio
     this.hpBar.setFillStyle(
@@ -80,7 +83,6 @@ export default class Vacuum {
   takeDamage(amount, attackType = null) {
     if (!this.alive) return
 
-    // Immunity check
     if (attackType && this.immune.includes(attackType)) {
       this.scene.tweens.add({
         targets: this.body,
@@ -92,6 +94,28 @@ export default class Vacuum {
     }
 
     this.hp -= amount
+
+    // Damage number floating up
+    const dmgTxt = this.scene.add.text(
+      this.container.x + Phaser.Math.Between(-10, 10),
+      this.container.y - this.radius,
+      `-${amount}`,
+      {
+        fontSize: '12px',
+        fontFamily: 'monospace',
+        color: '#ff5252',
+        stroke: '#000000',
+        strokeThickness: 2,
+      }
+    ).setDepth(20).setOrigin(0.5)
+
+    this.scene.tweens.add({
+      targets: dmgTxt,
+      y: dmgTxt.y - 30,
+      alpha: 0,
+      duration: 600,
+      onComplete: () => dmgTxt.destroy(),
+    })
 
     this.scene.tweens.add({
       targets: this.body,
@@ -107,6 +131,8 @@ export default class Vacuum {
     this.slowMultiplier = Math.min(this.slowMultiplier, multiplier)
     this.scene.time.delayedCall(duration, () => {
       this.slowMultiplier = 1.0
+      // Restore original color when slow wears off
+      this.body.setFillStyle(this.color)
     })
   }
 
@@ -120,16 +146,35 @@ export default class Vacuum {
   _die() {
     this.alive = false
 
-    // Gulper spawns mini zoombas on death
+    // Death particle burst
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2
+      const particle = this.scene.add.circle(
+        this.container.x,
+        this.container.y,
+        4, this.color, 1
+      ).setDepth(15)
+
+      this.scene.tweens.add({
+        targets: particle,
+        x: this.container.x + Math.cos(angle) * 40,
+        y: this.container.y + Math.sin(angle) * 40,
+        alpha: 0,
+        scaleX: 0,
+        scaleY: 0,
+        duration: 400,
+        ease: 'Quad.easeOut',
+        onComplete: () => particle.destroy(),
+      })
+    }
+
     if (this.spawnsOnDeath > 0) {
       for (let i = 0; i < this.spawnsOnDeath; i++) {
         this.scene.time.delayedCall(i * 200, () => {
           const mini = new Vacuum(this.scene, 'zoomba', this.waypoints)
-          // Snap mini to gulper's current position on the path
           mini.waypointIndex = this.waypointIndex
           mini.container.x = this.container.x
           mini.container.y = this.container.y
-          // Scale them down so they look like minis
           mini.container.setScale(0.6)
           mini.scrapDrop = 5
         })

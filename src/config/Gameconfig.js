@@ -25,6 +25,13 @@ export const TEST_PATH_WAYPOINTS = [
 
 export const UPGRADE_COSTS = [75, 125, 200, 350, 500]
 
+export const SETTINGS = {
+  musicOn: true,
+  sfxOn: true,
+  autoPlay: false,
+  gameSpeed: 1, // 1, 3, or 5
+}
+
 export const VACUUMS = {
   zoomba: {
     name: 'Zoomba',

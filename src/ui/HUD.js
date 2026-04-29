@@ -1,4 +1,4 @@
-import { GAME, DIRT } from '../config/GameConfig.js'
+import { GAME, DIRT, SETTINGS } from '../config/GameConfig.js'
 
 const CAT_PANEL = [
   { type: 'kitten',     label: '🐱 Kitten',    cost: 50,  color: '#f9a825' },
@@ -24,6 +24,8 @@ export default class HUD {
     this._buildDirtMeter()
     this._buildWaveDisplay()
     this._buildNextWaveButton()
+    this._buildSpeedControl()
+    this._buildSettingsButton()
     this._buildCatPanel()
     this._buildSelectedCatPanel()
     this._bindEvents()
@@ -101,6 +103,147 @@ export default class HUD {
     this._btnBg.on('pointerdown', () => {
       this.scene.events.emit('startNextWave')
     })
+  }
+
+  _buildSpeedControl() {
+    const s = this.scene
+    const W = GAME.width
+    const H = GAME.height
+
+    // Label
+    s.add.text(W - 260, H - 50, '⚡ SPEED', {
+      fontSize: '11px',
+      fontFamily: 'monospace',
+      color: '#78909c',
+    }).setScrollFactor(0).setDepth(10)
+
+    const speeds = [
+      { label: '1x', value: 1 },
+      { label: '3x', value: 3 },
+      { label: '5x', value: 5 },
+    ]
+
+    this._speedBtns = []
+
+    speeds.forEach((spd, i) => {
+      const bx = W - 255 + i * 40
+      const by = H - 30
+
+      const bg = s.add.rectangle(bx, by, 34, 22, spd.value === 1 ? 0x1b5e20 : 0x1a1a2e)
+        .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
+
+      const txt = s.add.text(bx, by, spd.label, {
+        fontSize: '11px',
+        fontFamily: 'monospace',
+        color: spd.value === 1 ? '#a5d6a7' : '#546e7a',
+      }).setScrollFactor(0).setDepth(11).setOrigin(0.5)
+
+      bg.on('pointerdown', () => {
+        SETTINGS.gameSpeed = spd.value
+        // Update button styles
+        this._speedBtns.forEach((btn, j) => {
+          btn.bg.setFillStyle(speeds[j].value === spd.value ? 0x1b5e20 : 0x1a1a2e)
+          btn.txt.setColor(speeds[j].value === spd.value ? '#a5d6a7' : '#546e7a')
+        })
+      })
+
+      this._speedBtns.push({ bg, txt })
+    })
+  }
+
+  _buildSettingsButton() {
+    const s = this.scene
+    const H = GAME.height
+
+    const bg = s.add.rectangle(22, H - 36, 36, 36, 0x1a1a2e)
+      .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
+
+    s.add.text(22, H - 36, '⚙️', {
+      fontSize: '18px',
+    }).setScrollFactor(0).setDepth(11).setOrigin(0.5)
+
+    bg.on('pointerdown', () => this._showSettings())
+  }
+
+  _showSettings() {
+    const s = this.scene
+    const W = GAME.width
+    const H = GAME.height
+
+    const overlay = s.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.8)
+      .setScrollFactor(0).setDepth(50).setInteractive()
+
+    const panel = s.add.rectangle(W / 2, H / 2, 400, 320, 0x0d0d1a)
+      .setScrollFactor(0).setDepth(51).setStrokeStyle(2, 0x37474f)
+
+    const title = s.add.text(W / 2, H / 2 - 130, '⚙️  SETTINGS', {
+      fontSize: '22px',
+      fontFamily: 'monospace',
+      color: '#ffd54f',
+    }).setScrollFactor(0).setDepth(52).setOrigin(0.5)
+
+    const items = []
+
+    // Music toggle
+    const musicTxt = s.add.text(W / 2 - 160, H / 2 - 70, `🎵 Music: ${SETTINGS.musicOn ? 'ON' : 'OFF'}`, {
+      fontSize: '16px',
+      fontFamily: 'monospace',
+      color: SETTINGS.musicOn ? '#a5d6a7' : '#ef5350',
+    }).setScrollFactor(0).setDepth(52).setInteractive({ useHandCursor: true })
+
+    musicTxt.on('pointerdown', () => {
+      SETTINGS.musicOn = !SETTINGS.musicOn
+      musicTxt.setText(`🎵 Music: ${SETTINGS.musicOn ? 'ON' : 'OFF'}`)
+      musicTxt.setColor(SETTINGS.musicOn ? '#a5d6a7' : '#ef5350')
+    })
+
+    // SFX toggle
+    const sfxTxt = s.add.text(W / 2 - 160, H / 2 - 30, `🔊 SFX: ${SETTINGS.sfxOn ? 'ON' : 'OFF'}`, {
+      fontSize: '16px',
+      fontFamily: 'monospace',
+      color: SETTINGS.sfxOn ? '#a5d6a7' : '#ef5350',
+    }).setScrollFactor(0).setDepth(52).setInteractive({ useHandCursor: true })
+
+    sfxTxt.on('pointerdown', () => {
+      SETTINGS.sfxOn = !SETTINGS.sfxOn
+      sfxTxt.setText(`🔊 SFX: ${SETTINGS.sfxOn ? 'ON' : 'OFF'}`)
+      sfxTxt.setColor(SETTINGS.sfxOn ? '#a5d6a7' : '#ef5350')
+    })
+
+    // Auto play toggle
+    const autoTxt = s.add.text(W / 2 - 160, H / 2 + 10, `⏭️  Auto Wave: ${SETTINGS.autoPlay ? 'ON' : 'OFF'}`, {
+      fontSize: '16px',
+      fontFamily: 'monospace',
+      color: SETTINGS.autoPlay ? '#a5d6a7' : '#ef5350',
+    }).setScrollFactor(0).setDepth(52).setInteractive({ useHandCursor: true })
+
+    autoTxt.on('pointerdown', () => {
+      SETTINGS.autoPlay = !SETTINGS.autoPlay
+      autoTxt.setText(`⏭️  Auto Wave: ${SETTINGS.autoPlay ? 'ON' : 'OFF'}`)
+      autoTxt.setColor(SETTINGS.autoPlay ? '#a5d6a7' : '#ef5350')
+    })
+
+    // Note about sound
+    s.add.text(W / 2, H / 2 + 60, '(Sound not yet implemented — coming soon)', {
+      fontSize: '11px',
+      fontFamily: 'monospace',
+      color: '#37474f',
+    }).setScrollFactor(0).setDepth(52).setOrigin(0.5)
+
+    items.push(overlay, panel, title, musicTxt, sfxTxt, autoTxt)
+
+    // Close button
+    const closeBtn = s.add.text(W / 2, H / 2 + 110, '[ CLOSE ]', {
+      fontSize: '18px',
+      fontFamily: 'monospace',
+      color: '#ef9a9a',
+    }).setScrollFactor(0).setDepth(52).setOrigin(0.5).setInteractive({ useHandCursor: true })
+
+    items.push(closeBtn)
+
+    const cleanup = () => items.forEach(o => o.destroy())
+    closeBtn.on('pointerdown', cleanup)
+    overlay.on('pointerdown', cleanup)
   }
 
   _buildCatPanel() {
@@ -209,12 +352,50 @@ export default class HUD {
         ratio > 0.3 ? 0xff9800 : 0xef5350
       )
       this._dirtPct.setText(`${Math.round(ratio * 100)}%`)
+
+      // Pulse dirt meter when critically low
+      if (ratio < 0.3 && !this._dirtPulsing) {
+        this._dirtPulsing = true
+        this.scene.tweens.add({
+          targets: this._dirtBar,
+          alpha: 0.3,
+          duration: 400,
+          yoyo: true,
+          repeat: -1,
+        })
+      } else if (ratio >= 0.3 && this._dirtPulsing) {
+        this._dirtPulsing = false
+        this.scene.tweens.killTweensOf(this._dirtBar)
+        this._dirtBar.setAlpha(1)
+      }
     })
 
     this.scene.events.on('waveStarted', (wave, total) => {
       this._waveText.setText(`Wave ${wave} / ${total}`)
       this._btnBg.setVisible(false)
       this._btnText.setVisible(false)
+
+      // Wave announcement
+      const announcement = this.scene.add.text(
+        GAME.width / 2, GAME.height / 2 - 40,
+        `WAVE ${wave}`,
+        {
+          fontSize: '72px',
+          fontFamily: 'monospace',
+          color: '#ffffff',
+          stroke: '#000000',
+          strokeThickness: 6,
+        }
+      ).setScrollFactor(0).setDepth(30).setOrigin(0.5).setAlpha(0)
+
+      this.scene.tweens.add({
+        targets: announcement,
+        alpha: 1,
+        duration: 300,
+        hold: 600,
+        yoyo: true,
+        onComplete: () => announcement.destroy(),
+      })
     })
 
     this.scene.events.on('waveComplete', (wave, total) => {

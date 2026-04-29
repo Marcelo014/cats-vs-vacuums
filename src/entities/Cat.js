@@ -1,4 +1,4 @@
-import { CATS, UPGRADE_COSTS } from '../config/GameConfig.js'
+import { CATS, UPGRADE_COSTS, SETTINGS } from '../config/GameConfig.js'
 
 export default class Cat {
   constructor(scene, type, x, y) {
@@ -9,7 +9,6 @@ export default class Cat {
     this.alive = true
     this._attackCooldown = 0
     this._target = null
-    this.placementRadius = 30
     this.level = 0
 
     // Load stats from config
@@ -22,6 +21,10 @@ export default class Cat {
     this.fireRate = config.fireRate
     this.color = config.color
     this.radius = config.radius
+
+    // Placement radius is just the cat's own circle size
+    // Cats can be placed anywhere as long as their circles don't overlap
+    this.placementRadius = this.radius
 
     // Graphics
     this.container = scene.add.container(x, y)
@@ -89,11 +92,9 @@ export default class Cat {
         break
     }
 
-    // Update level stars
     this.levelText.setText('★'.repeat(this.level))
     this.levelText.setColor(this.level >= 4 ? '#ffd700' : '#ffffff')
 
-    // Burst effect
     const burst = this.scene.add.circle(this.x, this.y, this.radius * 2, 0xffd700, 0.5)
     this.scene.tweens.add({
       targets: burst,
@@ -108,8 +109,22 @@ export default class Cat {
   update(delta) {
     if (!this.alive) return
 
+    // Scale delta by game speed
+    const scaledDelta = delta * SETTINGS.gameSpeed
+
     if (this._attackCooldown > 0) {
-      this._attackCooldown -= delta
+      this._attackCooldown -= scaledDelta
+    }
+
+    // Tuxedo — buff adjacent cats instead of attacking
+    if (this.type === 'tuxedo') {
+      this._applyTuxedoBuff()
+      return
+    }
+
+    // Persian — apply slow aura to vacuums in range
+    if (this.type === 'persian') {
+      this._applyPersianSlow()
     }
 
     if (!this._target || !this._target.alive) {
@@ -123,6 +138,57 @@ export default class Cat {
       } else {
         this._target = null
       }
+    }
+  }
+
+  _applyPersianSlow() {
+    for (const vacuum of this.scene.vacuums) {
+      if (!vacuum.alive) continue
+      if (vacuum.distanceTo(this.x, this.y) <= this.range) {
+        // Slow to 40% speed, refreshes every frame
+        vacuum.applySlow(0.4, 500)
+
+        // Subtle purple tint on slowed vacuums
+        vacuum.body.setFillStyle(0xce93d8)
+      }
+    }
+  }
+
+  _applyTuxedoBuff() {
+    // Buff range scales with level — Level 5 is map-wide
+    const buffRange = this.level >= 5 ? 9999 : this.range
+
+    for (const cat of this.scene.cats) {
+      if (cat === this) continue
+      if (!cat.alive) continue
+      const dist = Math.hypot(cat.x - this.x, cat.y - this.y)
+      if (dist <= buffRange) {
+        // Apply a 25% fire rate boost — refreshes every frame
+        // We do this by temporarily reducing the attack cooldown
+        if (!cat._tuxedoBuffed) {
+          cat._tuxedoBuffed = true
+          cat._basefireRate = cat._basefireRate || cat.fireRate
+          cat.fireRate = Math.round(cat._basefireRate * 0.75)
+        }
+      } else {
+        // Out of range — remove buff
+        if (cat._tuxedoBuffed) {
+          cat._tuxedoBuffed = false
+          cat.fireRate = cat._basefireRate || cat.fireRate
+        }
+      }
+    }
+
+    // Visual — subtle golden pulse on tuxedo
+    if (!this._tuxedoPulseActive) {
+      this._tuxedoPulseActive = true
+      this.scene.tweens.add({
+        targets: this.body,
+        alpha: 0.6,
+        duration: 800,
+        yoyo: true,
+        repeat: -1,
+      })
     }
   }
 
@@ -170,6 +236,15 @@ export default class Cat {
 
   destroy() {
     this.alive = false
+    // Remove tuxedo buff if this was a tuxedo
+    if (this.type === 'tuxedo') {
+      for (const cat of this.scene.cats) {
+        if (cat._tuxedoBuffed) {
+          cat._tuxedoBuffed = false
+          cat.fireRate = cat._basefireRate || cat.fireRate
+        }
+      }
+    }
     const idx = this.scene.cats.indexOf(this)
     if (idx !== -1) this.scene.cats.splice(idx, 1)
     this.container.destroy()
