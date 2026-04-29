@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser'
+import GameScene from './scenes/GameScene.js'
 
 const config = {
   type: Phaser.AUTO,
@@ -6,15 +7,7 @@ const config = {
   height: 720,
   backgroundColor: '#1a1a2e',
   parent: 'game-container',
-  scene: {
-    create() {
-      this.add.text(640, 360, '🐱 Cats vs Vacuums', {
-        fontSize: '48px',
-        fontFamily: 'monospace',
-        color: '#a5d6a7',
-      }).setOrigin(0.5)
-    }
-  }
+  scene: [GameScene],
 }
 
 new Phaser.Game(config)
