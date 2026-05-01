@@ -27,6 +27,7 @@ export default class GameScene extends Phaser.Scene {
     this._triggerCat = null
     this._VacuumClass = Vacuum
 
+    this._drawBackground()
     this._pathRenderer = new PathRenderer(this, this.waypoints)
     this._hud = new HUD(this, this.scraps)
     this._waveManager = new WaveManager(this, this.waypoints)
@@ -67,31 +68,24 @@ export default class GameScene extends Phaser.Scene {
       this._deselectCat()
     })
 
-    this.events.on('upgradeSelectedCat', () => {
-      this._upgradeSelectedCat()
+    this.events.on('upgradeSelectedCat', () => this._upgradeSelectedCat())
+    this.events.on('adoptOutSelectedCat', () => this._adoptOutSelectedCat())
+    this.events.on('triggerSelectedCat', () => this._handleTrigger())
+
+    this.events.on('pauseGameRequest', () => {
+      if (!this._gameOver && !this._paused) this._pauseGame()
     })
 
-    this.events.on('adoptOutSelectedCat', () => {
-      this._adoptOutSelectedCat()
+    this.events.on('resumeGame', () => {
+      if (this._paused) this._resumeGame()
     })
-
-    this.events.on('triggerSelectedCat', () => {
-      this._handleTrigger()
-    })
-
-this.events.on('pauseGameRequest', () => {
-  if (!this._gameOver && !this._paused) this._pauseGame()
-})
 
     this.events.on('waveComplete', () => {
       if (SETTINGS.autoPlay) {
-        this.time.delayedCall(1000, () => {
-          this._waveManager.startNextWave()
-        })
+        this.time.delayedCall(1000, () => this._waveManager.startNextWave())
       }
     })
 
-    // ESC to pause
     this.input.keyboard.on('keydown-ESC', () => {
       if (this._gameOver) return
       if (this._paused) {
@@ -101,7 +95,6 @@ this.events.on('pauseGameRequest', () => {
       }
     })
 
-    // SPACE to start next wave
     this.input.keyboard.on('keydown-SPACE', () => {
       if (this._paused) return
       if (this._waveManager.betweenWaves) {
@@ -143,182 +136,59 @@ this.events.on('pauseGameRequest', () => {
     })
   }
 
-  // -----------------------------------------------------------
-  // Pause system
-  // -----------------------------------------------------------
+_drawBackground() {
+  const W = GAME.width
+  const H = GAME.height
+
+  // Room floor
+  this.add.rectangle(W / 2, H / 2, W, H, 0x1A2535).setDepth(-3)
+
+  // Subtle floor pattern — horizontal wood planks
+  const g = this.add.graphics()
+  g.setDepth(-2)
+
+  for (let y = 60; y < H - 80; y += 32) {
+    g.lineStyle(1, 0x243344, 0.6)
+    g.beginPath()
+    g.moveTo(0, y)
+    g.lineTo(W, y)
+    g.strokePath()
+  }
+
+  // Vertical plank breaks every ~120px with slight offset
+  for (let x = 0; x < W; x += 120) {
+    const offset = Phaser.Math.Between(-8, 8)
+    g.lineStyle(1, 0x1E2D3F, 0.4)
+    g.beginPath()
+    g.moveTo(x, 60 + offset)
+    g.lineTo(x, H - 80 + offset)
+    g.strokePath()
+  }
+
+  // Subtle vignette — darker edges
+  const vignette = this.add.graphics().setDepth(-1)
+  vignette.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.4, 0.4, 0, 0)
+  vignette.fillRect(0, 60, W, 100)
+  vignette.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0, 0.4, 0.4)
+  vignette.fillRect(0, H - 180, W, 100)
+
+  // Decorative elements — cozy living room feel
+  // Baseboard along the bottom of the play area
+  this.add.rectangle(W / 2, H - 82, W, 6, 0x2D4A6B).setDepth(-1)
+
+  // Baseboard along the top of the play area
+  this.add.rectangle(W / 2, 62, W, 4, 0x2D4A6B).setDepth(-1)
+}
 
   _pauseGame() {
     this._paused = true
-
-    // Dim overlay
-    this._pauseOverlay = this.add.rectangle(
-      GAME.width / 2, GAME.height / 2,
-      GAME.width, GAME.height,
-      0x000000, 0.7
-    ).setScrollFactor(0).setDepth(40)
-
-    // Panel
-    this._pausePanel = this.add.rectangle(
-      GAME.width / 2, GAME.height / 2,
-      360, 380, 0x0d0d1a
-    ).setScrollFactor(0).setDepth(41).setStrokeStyle(2, 0x37474f)
-
-    // Title
-    this._pauseTitle = this.add.text(GAME.width / 2, GAME.height / 2 - 150, '⏸  PAUSED', {
-      fontSize: '28px',
-      fontFamily: 'monospace',
-      color: '#ffd54f',
-    }).setScrollFactor(0).setDepth(42).setOrigin(0.5)
-
-    const items = [this._pauseOverlay, this._pausePanel, this._pauseTitle]
-
-    // Resume
-    items.push(...this._makePauseButton(
-      GAME.width / 2, GAME.height / 2 - 80,
-      '▶  RESUME', '#a5d6a7', 0x1b5e20,
-      () => this._resumeGame()
-    ))
-
-    // Restart
-    items.push(...this._makePauseButton(
-      GAME.width / 2, GAME.height / 2 - 20,
-      '↺  RESTART', '#90caf9', 0x1a237e,
-      () => {
-        this._clearPauseMenu()
-        this.scene.restart()
-      }
-    ))
-
-    // Sound toggle
-    const soundLabel = () => `🔊 SFX: ${SETTINGS.sfxOn ? 'ON' : 'OFF'}`
-    const soundBtn = this._makePauseButton(
-      GAME.width / 2, GAME.height / 2 + 40,
-      soundLabel(), '#b0bec5', 0x263238,
-      () => {
-        SETTINGS.sfxOn = !SETTINGS.sfxOn
-        soundTxt.setText(soundLabel())
-      }
-    )
-    const soundTxt = soundBtn[1]
-    items.push(...soundBtn)
-
-    // Music toggle
-    const musicLabel = () => `🎵 Music: ${SETTINGS.musicOn ? 'ON' : 'OFF'}`
-    const musicBtn = this._makePauseButton(
-      GAME.width / 2, GAME.height / 2 + 100,
-      musicLabel(), '#b0bec5', 0x263238,
-      () => {
-        SETTINGS.musicOn = !SETTINGS.musicOn
-        musicTxt.setText(musicLabel())
-      }
-    )
-    const musicTxt = musicBtn[1]
-    items.push(...musicBtn)
-
-    // Main menu
-    items.push(...this._makePauseButton(
-      GAME.width / 2, GAME.height / 2 + 160,
-      '⬅  MAIN MENU', '#ef9a9a', 0x4e342e,
-      () => this._confirmQuit()
-    ))
-
-    this._pauseItems = items
+    this._hud.showPauseMenu()
   }
 
   _resumeGame() {
     this._paused = false
-    this._clearPauseMenu()
+    this._hud.hidePauseMenu()
   }
-
-  _clearPauseMenu() {
-    if (this._pauseItems) {
-      this._pauseItems.forEach(i => i.destroy())
-      this._pauseItems = null
-    }
-  }
-
-  _makePauseButton(x, y, label, textColor, bgColor, onClick) {
-    const bg = this.add.rectangle(x, y, 280, 44, bgColor)
-      .setScrollFactor(0).setDepth(42).setInteractive({ useHandCursor: true })
-
-    const txt = this.add.text(x, y, label, {
-      fontSize: '16px',
-      fontFamily: 'monospace',
-      color: textColor,
-    }).setScrollFactor(0).setDepth(43).setOrigin(0.5)
-
-    bg.on('pointerover', () => txt.setScale(1.05))
-    bg.on('pointerout', () => txt.setScale(1))
-    bg.on('pointerdown', onClick)
-
-    return [bg, txt]
-  }
-
-  _confirmQuit() {
-    // Clear pause menu first
-    this._clearPauseMenu()
-
-    const W = GAME.width
-    const H = GAME.height
-
-    const items = []
-
-    const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.8)
-      .setScrollFactor(0).setDepth(50)
-    items.push(overlay)
-
-    const panel = this.add.rectangle(W / 2, H / 2, 360, 220, 0x0d0d1a)
-      .setScrollFactor(0).setDepth(51).setStrokeStyle(2, 0x4e342e)
-    items.push(panel)
-
-    items.push(this.add.text(W / 2, H / 2 - 70, '⚠️  QUIT GAME?', {
-      fontSize: '22px',
-      fontFamily: 'monospace',
-      color: '#ef9a9a',
-    }).setScrollFactor(0).setDepth(52).setOrigin(0.5))
-
-    items.push(this.add.text(W / 2, H / 2 - 20, 'Your progress will be lost.', {
-      fontSize: '14px',
-      fontFamily: 'monospace',
-      color: '#546e7a',
-    }).setScrollFactor(0).setDepth(52).setOrigin(0.5))
-
-    const cleanup = () => items.forEach(i => i.destroy())
-
-    // Confirm
-    const yesBg = this.add.rectangle(W / 2 - 80, H / 2 + 50, 130, 40, 0x4e342e)
-      .setScrollFactor(0).setDepth(52).setInteractive({ useHandCursor: true })
-    const yesTxt = this.add.text(W / 2 - 80, H / 2 + 50, 'YES, QUIT', {
-      fontSize: '14px',
-      fontFamily: 'monospace',
-      color: '#ef9a9a',
-    }).setScrollFactor(0).setDepth(53).setOrigin(0.5)
-    items.push(yesBg, yesTxt)
-
-    yesBg.on('pointerdown', () => {
-      cleanup()
-      this.scene.start('MainMenuScene')
-    })
-
-    // Cancel
-    const noBg = this.add.rectangle(W / 2 + 80, H / 2 + 50, 130, 40, 0x1b5e20)
-      .setScrollFactor(0).setDepth(52).setInteractive({ useHandCursor: true })
-    const noTxt = this.add.text(W / 2 + 80, H / 2 + 50, 'KEEP PLAYING', {
-      fontSize: '14px',
-      fontFamily: 'monospace',
-      color: '#a5d6a7',
-    }).setScrollFactor(0).setDepth(53).setOrigin(0.5)
-    items.push(noBg, noTxt)
-
-    noBg.on('pointerdown', () => {
-      cleanup()
-      this._pauseGame()
-    })
-  }
-
-  // -----------------------------------------------------------
-  // Rest of GameScene unchanged
-  // -----------------------------------------------------------
 
   _handleTrigger() {
     const cat = this._selectedCat
@@ -403,8 +273,9 @@ this.events.on('pauseGameRequest', () => {
   }
 
   _spawnScrapText(x, y, amount) {
-    const txt = this.add.text(x, y - 20, `+${amount}💰`, {
-      fontSize: '14px',
+    const label = this._hud.getScrapQuip(amount)
+    const txt = this.add.text(x, y - 20, label, {
+      fontSize: '13px',
       fontFamily: 'monospace',
       color: '#ffd54f',
       stroke: '#000000',

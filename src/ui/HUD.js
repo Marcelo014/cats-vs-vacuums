@@ -203,10 +203,10 @@ export default class HUD {
     }).setScrollFactor(0).setDepth(10).setOrigin(0.5, 0)
 
     const speeds = [
-      { label: '1x', value: 1 },
-      { label: '3x', value: 3 },
-      { label: '5x', value: 5 },
-    ]
+  { label: 'x1', value: 1 },
+  { label: 'x3', value: 3 },
+  { label: 'x5', value: 5 },
+]
 
     this._speedBtns = []
 
