@@ -22,6 +22,7 @@ export default class GameScene extends Phaser.Scene {
     this._selectedCat = null
     this._placingCatType = 'kitten'
     this._gameOver = false
+    this._paused = false
     this._awaitingTriggerTarget = false
     this._triggerCat = null
     this._VacuumClass = Vacuum
@@ -78,6 +79,10 @@ export default class GameScene extends Phaser.Scene {
       this._handleTrigger()
     })
 
+this.events.on('pauseGameRequest', () => {
+  if (!this._gameOver && !this._paused) this._pauseGame()
+})
+
     this.events.on('waveComplete', () => {
       if (SETTINGS.autoPlay) {
         this.time.delayedCall(1000, () => {
@@ -86,11 +91,30 @@ export default class GameScene extends Phaser.Scene {
       }
     })
 
+    // ESC to pause
+    this.input.keyboard.on('keydown-ESC', () => {
+      if (this._gameOver) return
+      if (this._paused) {
+        this._resumeGame()
+      } else {
+        this._pauseGame()
+      }
+    })
+
+    // SPACE to start next wave
+    this.input.keyboard.on('keydown-SPACE', () => {
+      if (this._paused) return
+      if (this._waveManager.betweenWaves) {
+        this._waveManager.startNextWave()
+      }
+    })
+
     this.input.on('pointerdown', (pointer) => {
+      if (this._paused) return
+
       const x = pointer.x
       const y = pointer.y
 
-      // Handle trigger target click
       if (this._awaitingTriggerTarget) {
         this._triggerCat.activateTrigger(x, y)
         this._awaitingTriggerTarget = false
@@ -119,17 +143,192 @@ export default class GameScene extends Phaser.Scene {
     })
   }
 
+  // -----------------------------------------------------------
+  // Pause system
+  // -----------------------------------------------------------
+
+  _pauseGame() {
+    this._paused = true
+
+    // Dim overlay
+    this._pauseOverlay = this.add.rectangle(
+      GAME.width / 2, GAME.height / 2,
+      GAME.width, GAME.height,
+      0x000000, 0.7
+    ).setScrollFactor(0).setDepth(40)
+
+    // Panel
+    this._pausePanel = this.add.rectangle(
+      GAME.width / 2, GAME.height / 2,
+      360, 380, 0x0d0d1a
+    ).setScrollFactor(0).setDepth(41).setStrokeStyle(2, 0x37474f)
+
+    // Title
+    this._pauseTitle = this.add.text(GAME.width / 2, GAME.height / 2 - 150, '⏸  PAUSED', {
+      fontSize: '28px',
+      fontFamily: 'monospace',
+      color: '#ffd54f',
+    }).setScrollFactor(0).setDepth(42).setOrigin(0.5)
+
+    const items = [this._pauseOverlay, this._pausePanel, this._pauseTitle]
+
+    // Resume
+    items.push(...this._makePauseButton(
+      GAME.width / 2, GAME.height / 2 - 80,
+      '▶  RESUME', '#a5d6a7', 0x1b5e20,
+      () => this._resumeGame()
+    ))
+
+    // Restart
+    items.push(...this._makePauseButton(
+      GAME.width / 2, GAME.height / 2 - 20,
+      '↺  RESTART', '#90caf9', 0x1a237e,
+      () => {
+        this._clearPauseMenu()
+        this.scene.restart()
+      }
+    ))
+
+    // Sound toggle
+    const soundLabel = () => `🔊 SFX: ${SETTINGS.sfxOn ? 'ON' : 'OFF'}`
+    const soundBtn = this._makePauseButton(
+      GAME.width / 2, GAME.height / 2 + 40,
+      soundLabel(), '#b0bec5', 0x263238,
+      () => {
+        SETTINGS.sfxOn = !SETTINGS.sfxOn
+        soundTxt.setText(soundLabel())
+      }
+    )
+    const soundTxt = soundBtn[1]
+    items.push(...soundBtn)
+
+    // Music toggle
+    const musicLabel = () => `🎵 Music: ${SETTINGS.musicOn ? 'ON' : 'OFF'}`
+    const musicBtn = this._makePauseButton(
+      GAME.width / 2, GAME.height / 2 + 100,
+      musicLabel(), '#b0bec5', 0x263238,
+      () => {
+        SETTINGS.musicOn = !SETTINGS.musicOn
+        musicTxt.setText(musicLabel())
+      }
+    )
+    const musicTxt = musicBtn[1]
+    items.push(...musicBtn)
+
+    // Main menu
+    items.push(...this._makePauseButton(
+      GAME.width / 2, GAME.height / 2 + 160,
+      '⬅  MAIN MENU', '#ef9a9a', 0x4e342e,
+      () => this._confirmQuit()
+    ))
+
+    this._pauseItems = items
+  }
+
+  _resumeGame() {
+    this._paused = false
+    this._clearPauseMenu()
+  }
+
+  _clearPauseMenu() {
+    if (this._pauseItems) {
+      this._pauseItems.forEach(i => i.destroy())
+      this._pauseItems = null
+    }
+  }
+
+  _makePauseButton(x, y, label, textColor, bgColor, onClick) {
+    const bg = this.add.rectangle(x, y, 280, 44, bgColor)
+      .setScrollFactor(0).setDepth(42).setInteractive({ useHandCursor: true })
+
+    const txt = this.add.text(x, y, label, {
+      fontSize: '16px',
+      fontFamily: 'monospace',
+      color: textColor,
+    }).setScrollFactor(0).setDepth(43).setOrigin(0.5)
+
+    bg.on('pointerover', () => txt.setScale(1.05))
+    bg.on('pointerout', () => txt.setScale(1))
+    bg.on('pointerdown', onClick)
+
+    return [bg, txt]
+  }
+
+  _confirmQuit() {
+    // Clear pause menu first
+    this._clearPauseMenu()
+
+    const W = GAME.width
+    const H = GAME.height
+
+    const items = []
+
+    const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.8)
+      .setScrollFactor(0).setDepth(50)
+    items.push(overlay)
+
+    const panel = this.add.rectangle(W / 2, H / 2, 360, 220, 0x0d0d1a)
+      .setScrollFactor(0).setDepth(51).setStrokeStyle(2, 0x4e342e)
+    items.push(panel)
+
+    items.push(this.add.text(W / 2, H / 2 - 70, '⚠️  QUIT GAME?', {
+      fontSize: '22px',
+      fontFamily: 'monospace',
+      color: '#ef9a9a',
+    }).setScrollFactor(0).setDepth(52).setOrigin(0.5))
+
+    items.push(this.add.text(W / 2, H / 2 - 20, 'Your progress will be lost.', {
+      fontSize: '14px',
+      fontFamily: 'monospace',
+      color: '#546e7a',
+    }).setScrollFactor(0).setDepth(52).setOrigin(0.5))
+
+    const cleanup = () => items.forEach(i => i.destroy())
+
+    // Confirm
+    const yesBg = this.add.rectangle(W / 2 - 80, H / 2 + 50, 130, 40, 0x4e342e)
+      .setScrollFactor(0).setDepth(52).setInteractive({ useHandCursor: true })
+    const yesTxt = this.add.text(W / 2 - 80, H / 2 + 50, 'YES, QUIT', {
+      fontSize: '14px',
+      fontFamily: 'monospace',
+      color: '#ef9a9a',
+    }).setScrollFactor(0).setDepth(53).setOrigin(0.5)
+    items.push(yesBg, yesTxt)
+
+    yesBg.on('pointerdown', () => {
+      cleanup()
+      this.scene.start('MainMenuScene')
+    })
+
+    // Cancel
+    const noBg = this.add.rectangle(W / 2 + 80, H / 2 + 50, 130, 40, 0x1b5e20)
+      .setScrollFactor(0).setDepth(52).setInteractive({ useHandCursor: true })
+    const noTxt = this.add.text(W / 2 + 80, H / 2 + 50, 'KEEP PLAYING', {
+      fontSize: '14px',
+      fontFamily: 'monospace',
+      color: '#a5d6a7',
+    }).setScrollFactor(0).setDepth(53).setOrigin(0.5)
+    items.push(noBg, noTxt)
+
+    noBg.on('pointerdown', () => {
+      cleanup()
+      this._pauseGame()
+    })
+  }
+
+  // -----------------------------------------------------------
+  // Rest of GameScene unchanged
+  // -----------------------------------------------------------
+
   _handleTrigger() {
     const cat = this._selectedCat
     if (!cat || !cat.canTrigger()) return
 
     if (TARGETED_TRIGGERS.includes(cat.type)) {
-      // Need a map click — enter targeting mode
       this._awaitingTriggerTarget = true
       this._triggerCat = cat
       this.events.emit('awaitingTriggerTarget', cat)
     } else {
-      // No target needed — fire immediately
       cat.activateTrigger()
     }
   }
@@ -190,7 +389,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
-    if (this._gameOver) return
+    if (this._gameOver || this._paused) return
 
     for (let i = this.vacuums.length - 1; i >= 0; i--) {
       this.vacuums[i].update(delta)

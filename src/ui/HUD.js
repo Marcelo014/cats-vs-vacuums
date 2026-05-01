@@ -1,4 +1,5 @@
 import { GAME, DIRT, SETTINGS } from '../config/GameConfig.js'
+import * as Phaser from 'phaser'
 
 const CAT_PANEL = [
   { type: 'kitten',     label: '🐱 Kitten',    cost: 50,  color: '#f9a825' },
@@ -13,8 +14,45 @@ const CAT_PANEL = [
   { type: 'tuxedo',     label: '🎩 Tuxedo',     cost: 300, color: '#90a4ae' },
 ]
 
-// Triggerables that need a map click target
 const TARGETED_TRIGGERS = ['siamese', 'ragdoll', 'chonk']
+
+const WAVE_SUBTITLES = [
+  'Here they come.',
+  'The vacuums are angry.',
+  'They brought backup.',
+  'More. Always more.',
+  'The cats hold the line.',
+  'Getting spicy in here.',
+  'They want the dirt BAD.',
+  'No mercy. No surrender.',
+  'The floor shall not be cleaned.',
+  'FINAL WAVE. This is it.',
+]
+
+const CAT_CHATTER = [
+  'This is MY dirt.',
+  'Not today, Zoomba.',
+  'I\'m watching you 👀',
+  'Stay back.',
+  'Try me.',
+  'The dirt stays.',
+  'I will end you.',
+  'Nope.',
+  '*hissing intensifies*',
+  'Come closer. I dare you.',
+  'This floor is sacred.',
+  'I haven\'t napped yet today and I am ANGRY.',
+]
+
+const SCRAP_QUIPS = [
+  (n) => `+${n} 💰`,
+  (n) => `+${n} 💰`,
+  (n) => `+${n} 💰`,
+  (n) => `+${n} 💰 Nice.`,
+  (n) => `+${n} 💰 Cha-ching!`,
+  (n) => `+${n} 💰 Get paid.`,
+  (n) => `+${n} scraps!`,
+]
 
 export default class HUD {
   constructor(scene, startingScraps) {
@@ -24,16 +62,18 @@ export default class HUD {
     this._selectedBtn = null
     this._awaitingTriggerTarget = false
     this._triggerCat = null
+    this._dirtPulsing = false
 
     this._buildScrapsDisplay()
     this._buildDirtMeter()
     this._buildWaveDisplay()
     this._buildNextWaveButton()
     this._buildSpeedControl()
-    this._buildSettingsButton()
+    this._buildPauseButton()
     this._buildCatPanel()
     this._buildSelectedCatPanel()
     this._bindEvents()
+    this._startCatChatter()
   }
 
   _buildScrapsDisplay() {
@@ -53,11 +93,11 @@ export default class HUD {
     const s = this.scene
     const W = GAME.width
 
-    s.add.text(W / 2 - 120, 14, '🏠 DIRT METER', {
+    this._dirtLabel = s.add.text(W / 2, 14, '🏠 DIRT METER', {
       fontSize: '11px',
       fontFamily: 'monospace',
       color: '#a5d6a7',
-    }).setScrollFactor(0).setDepth(10)
+    }).setScrollFactor(0).setDepth(10).setOrigin(0.5, 0)
 
     s.add.rectangle(W / 2, 34, 240, 14, 0x333333)
       .setScrollFactor(0).setDepth(10)
@@ -154,94 +194,20 @@ export default class HUD {
     })
   }
 
-  _buildSettingsButton() {
+  _buildPauseButton() {
     const s = this.scene
-    const H = GAME.height
+    const W = GAME.width
 
-    const bg = s.add.rectangle(22, H - 36, 36, 36, 0x1a1a2e)
+    const bg = s.add.rectangle(W / 2, 26, 60, 30, 0x1a1a2e)
       .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
 
-    s.add.text(22, H - 36, '⚙️', {
+    s.add.text(W / 2, 26, '⏸', {
       fontSize: '18px',
     }).setScrollFactor(0).setDepth(11).setOrigin(0.5)
 
-    bg.on('pointerdown', () => this._showSettings())
-  }
-
-  _showSettings() {
-    const s = this.scene
-    const W = GAME.width
-    const H = GAME.height
-
-    const overlay = s.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.8)
-      .setScrollFactor(0).setDepth(50).setInteractive()
-
-    const panel = s.add.rectangle(W / 2, H / 2, 400, 320, 0x0d0d1a)
-      .setScrollFactor(0).setDepth(51).setStrokeStyle(2, 0x37474f)
-
-    const title = s.add.text(W / 2, H / 2 - 130, '⚙️  SETTINGS', {
-      fontSize: '22px',
-      fontFamily: 'monospace',
-      color: '#ffd54f',
-    }).setScrollFactor(0).setDepth(52).setOrigin(0.5)
-
-    const items = [overlay, panel, title]
-
-    const musicTxt = s.add.text(W / 2 - 160, H / 2 - 70, `🎵 Music: ${SETTINGS.musicOn ? 'ON' : 'OFF'}`, {
-      fontSize: '16px',
-      fontFamily: 'monospace',
-      color: SETTINGS.musicOn ? '#a5d6a7' : '#ef5350',
-    }).setScrollFactor(0).setDepth(52).setInteractive({ useHandCursor: true })
-    items.push(musicTxt)
-
-    musicTxt.on('pointerdown', () => {
-      SETTINGS.musicOn = !SETTINGS.musicOn
-      musicTxt.setText(`🎵 Music: ${SETTINGS.musicOn ? 'ON' : 'OFF'}`)
-      musicTxt.setColor(SETTINGS.musicOn ? '#a5d6a7' : '#ef5350')
-    })
-
-    const sfxTxt = s.add.text(W / 2 - 160, H / 2 - 30, `🔊 SFX: ${SETTINGS.sfxOn ? 'ON' : 'OFF'}`, {
-      fontSize: '16px',
-      fontFamily: 'monospace',
-      color: SETTINGS.sfxOn ? '#a5d6a7' : '#ef5350',
-    }).setScrollFactor(0).setDepth(52).setInteractive({ useHandCursor: true })
-    items.push(sfxTxt)
-
-    sfxTxt.on('pointerdown', () => {
-      SETTINGS.sfxOn = !SETTINGS.sfxOn
-      sfxTxt.setText(`🔊 SFX: ${SETTINGS.sfxOn ? 'ON' : 'OFF'}`)
-      sfxTxt.setColor(SETTINGS.sfxOn ? '#a5d6a7' : '#ef5350')
-    })
-
-    const autoTxt = s.add.text(W / 2 - 160, H / 2 + 10, `⏭️  Auto Wave: ${SETTINGS.autoPlay ? 'ON' : 'OFF'}`, {
-      fontSize: '16px',
-      fontFamily: 'monospace',
-      color: SETTINGS.autoPlay ? '#a5d6a7' : '#ef5350',
-    }).setScrollFactor(0).setDepth(52).setInteractive({ useHandCursor: true })
-    items.push(autoTxt)
-
-    autoTxt.on('pointerdown', () => {
-      SETTINGS.autoPlay = !SETTINGS.autoPlay
-      autoTxt.setText(`⏭️  Auto Wave: ${SETTINGS.autoPlay ? 'ON' : 'OFF'}`)
-      autoTxt.setColor(SETTINGS.autoPlay ? '#a5d6a7' : '#ef5350')
-    })
-
-    s.add.text(W / 2, H / 2 + 60, '(Sound not yet implemented — coming soon)', {
-      fontSize: '11px',
-      fontFamily: 'monospace',
-      color: '#37474f',
-    }).setScrollFactor(0).setDepth(52).setOrigin(0.5)
-
-    const closeBtn = s.add.text(W / 2, H / 2 + 110, '[ CLOSE ]', {
-      fontSize: '18px',
-      fontFamily: 'monospace',
-      color: '#ef9a9a',
-    }).setScrollFactor(0).setDepth(52).setOrigin(0.5).setInteractive({ useHandCursor: true })
-    items.push(closeBtn)
-
-    const cleanup = () => items.forEach(o => o.destroy())
-    closeBtn.on('pointerdown', cleanup)
-    overlay.on('pointerdown', cleanup)
+    bg.on('pointerover', () => bg.setFillStyle(0x2a2a3e))
+    bg.on('pointerout', () => bg.setFillStyle(0x1a1a2e))
+    bg.on('pointerdown', () => s.events.emit('pauseGameRequest'))
   }
 
   _buildCatPanel() {
@@ -305,7 +271,6 @@ export default class HUD {
       align: 'center',
     }).setScrollFactor(0).setDepth(11).setOrigin(0.5)
 
-    // Upgrade button
     this._upgradeBtn = s.add.rectangle(55, panelY + 6, 68, 18, 0x1a237e)
       .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
       .setVisible(false)
@@ -318,7 +283,6 @@ export default class HUD {
 
     this._upgradeBtn.on('pointerdown', () => s.events.emit('upgradeSelectedCat'))
 
-    // Adopt button
     this._adoptBtn = s.add.rectangle(125, panelY + 6, 68, 18, 0x4e342e)
       .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
       .setVisible(false)
@@ -331,7 +295,6 @@ export default class HUD {
 
     this._adoptBtn.on('pointerdown', () => s.events.emit('adoptOutSelectedCat'))
 
-    // Trigger button
     this._triggerBtn = s.add.rectangle(90, panelY + 26, 148, 18, 0x7b1fa2)
       .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
       .setVisible(false)
@@ -344,6 +307,252 @@ export default class HUD {
 
     this._triggerBtn.on('pointerdown', () => s.events.emit('triggerSelectedCat'))
   }
+
+  // -----------------------------------------------------------
+  // Merged pause + settings menu
+  // -----------------------------------------------------------
+
+  showPauseMenu() {
+    const s = this.scene
+    const W = GAME.width
+    const H = GAME.height
+
+    this._pauseMenuItems = []
+
+    const overlay = s.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.75)
+      .setScrollFactor(0).setDepth(40)
+    this._pauseMenuItems.push(overlay)
+
+    const panel = s.add.rectangle(W / 2, H / 2, 380, 480, 0x0d0d1a)
+      .setScrollFactor(0).setDepth(41).setStrokeStyle(2, 0x37474f)
+    this._pauseMenuItems.push(panel)
+
+    // Cat sitting on top of panel for personality
+    const catDeco = s.add.text(W / 2, H / 2 - 230, '😾', {
+      fontSize: '36px',
+    }).setScrollFactor(0).setDepth(42).setOrigin(0.5)
+    this._pauseMenuItems.push(catDeco)
+
+    // Bounce the cat
+    s.tweens.add({
+      targets: catDeco,
+      y: H / 2 - 240,
+      duration: 600,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    })
+
+    this._pauseMenuItems.push(s.add.text(W / 2, H / 2 - 190, '— PAUSED —', {
+      fontSize: '24px',
+      fontFamily: 'monospace',
+      color: '#ffd54f',
+    }).setScrollFactor(0).setDepth(42).setOrigin(0.5))
+
+    this._pauseMenuItems.push(s.add.text(W / 2, H / 2 - 160, 'The dirt awaits your return.', {
+      fontSize: '12px',
+      fontFamily: 'monospace',
+      color: '#546e7a',
+    }).setScrollFactor(0).setDepth(42).setOrigin(0.5))
+
+    // Resume
+    this._pauseMenuItems.push(...this._makePauseBtn(
+      W / 2, H / 2 - 100, '▶  RESUME', '#a5d6a7', 0x1b5e20,
+      () => s.events.emit('resumeGame')
+    ))
+
+    // Restart
+    this._pauseMenuItems.push(...this._makePauseBtn(
+      W / 2, H / 2 - 44, '↺  RESTART', '#90caf9', 0x1a237e,
+      () => {
+        this.hidePauseMenu()
+        s.scene.restart()
+      }
+    ))
+
+    // Sound toggle
+    const soundLabel = () => `🔊 SFX: ${SETTINGS.sfxOn ? 'ON ✓' : 'OFF ✗'}`
+    const [sBg, sTxt] = this._makePauseBtn(
+      W / 2, H / 2 + 12, soundLabel(), '#b0bec5', 0x263238,
+      () => {
+        SETTINGS.sfxOn = !SETTINGS.sfxOn
+        sTxt.setText(soundLabel())
+      }
+    )
+    this._pauseMenuItems.push(sBg, sTxt)
+
+    // Music toggle
+    const musicLabel = () => `🎵 Music: ${SETTINGS.musicOn ? 'ON ✓' : 'OFF ✗'}`
+    const [mBg, mTxt] = this._makePauseBtn(
+      W / 2, H / 2 + 68, musicLabel(), '#b0bec5', 0x263238,
+      () => {
+        SETTINGS.musicOn = !SETTINGS.musicOn
+        mTxt.setText(musicLabel())
+      }
+    )
+    this._pauseMenuItems.push(mBg, mTxt)
+
+    // Auto wave toggle
+    const autoLabel = () => `⏭️  Auto Wave: ${SETTINGS.autoPlay ? 'ON ✓' : 'OFF ✗'}`
+    const [aBg, aTxt] = this._makePauseBtn(
+      W / 2, H / 2 + 124, autoLabel(), '#b0bec5', 0x263238,
+      () => {
+        SETTINGS.autoPlay = !SETTINGS.autoPlay
+        aTxt.setText(autoLabel())
+      }
+    )
+    this._pauseMenuItems.push(aBg, aTxt)
+
+    // Main menu
+    this._pauseMenuItems.push(...this._makePauseBtn(
+      W / 2, H / 2 + 190, '⬅  MAIN MENU', '#ef9a9a', 0x4e342e,
+      () => {
+        this.hidePauseMenu()
+        this._showQuitConfirm()
+      }
+    ))
+
+    // ESC hint
+    this._pauseMenuItems.push(s.add.text(W / 2, H / 2 + 230, 'Press ESC to resume', {
+      fontSize: '11px',
+      fontFamily: 'monospace',
+      color: '#263238',
+    }).setScrollFactor(0).setDepth(42).setOrigin(0.5))
+  }
+
+  hidePauseMenu() {
+    if (this._pauseMenuItems) {
+      this._pauseMenuItems.forEach(i => i.destroy())
+      this._pauseMenuItems = null
+    }
+  }
+
+  _makePauseBtn(x, y, label, textColor, bgColor, onClick) {
+    const s = this.scene
+    const bg = s.add.rectangle(x, y, 300, 42, bgColor)
+      .setScrollFactor(0).setDepth(42).setInteractive({ useHandCursor: true })
+
+    const txt = s.add.text(x, y, label, {
+      fontSize: '15px',
+      fontFamily: 'monospace',
+      color: textColor,
+    }).setScrollFactor(0).setDepth(43).setOrigin(0.5)
+
+    bg.on('pointerover', () => {
+      bg.setAlpha(0.8)
+      txt.setScale(1.04)
+    })
+    bg.on('pointerout', () => {
+      bg.setAlpha(1)
+      txt.setScale(1)
+    })
+    bg.on('pointerdown', onClick)
+
+    return [bg, txt]
+  }
+
+  _showQuitConfirm() {
+    const s = this.scene
+    const W = GAME.width
+    const H = GAME.height
+    const items = []
+
+    const overlay = s.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.85)
+      .setScrollFactor(0).setDepth(50)
+    items.push(overlay)
+
+    const panel = s.add.rectangle(W / 2, H / 2, 380, 240, 0x0d0d1a)
+      .setScrollFactor(0).setDepth(51).setStrokeStyle(2, 0x4e342e)
+    items.push(panel)
+
+    items.push(s.add.text(W / 2, H / 2 - 80, '😿  ABANDON THE DIRT?', {
+      fontSize: '20px',
+      fontFamily: 'monospace',
+      color: '#ef9a9a',
+    }).setScrollFactor(0).setDepth(52).setOrigin(0.5))
+
+    items.push(s.add.text(W / 2, H / 2 - 40, 'The vacuums will win.\nThe dirt will be lost forever.', {
+      fontSize: '13px',
+      fontFamily: 'monospace',
+      color: '#546e7a',
+      align: 'center',
+    }).setScrollFactor(0).setDepth(52).setOrigin(0.5))
+
+    const cleanup = () => items.forEach(i => i.destroy())
+
+    const [yesBg, yesTxt] = this._makePauseBtn(W / 2 - 85, H / 2 + 50, 'ABANDON', '#ef9a9a', 0x4e342e, () => {
+      cleanup()
+      s.scene.start('MainMenuScene')
+    })
+    yesBg.setDepth(52)
+    yesTxt.setDepth(53)
+    yesBg.width = 140
+    items.push(yesBg, yesTxt)
+
+    const [noBg, noTxt] = this._makePauseBtn(W / 2 + 85, H / 2 + 50, 'STAY & FIGHT', '#a5d6a7', 0x1b5e20, () => {
+      cleanup()
+      this.showPauseMenu()
+    })
+    noBg.setDepth(52)
+    noTxt.setDepth(53)
+    noBg.width = 140
+    items.push(noBg, noTxt)
+  }
+
+  // -----------------------------------------------------------
+  // Cat chatter
+  // -----------------------------------------------------------
+
+  _startCatChatter() {
+    // Every 12-20 seconds, a random placed cat says something
+    const scheduleNext = () => {
+      const delay = Phaser.Math.Between(12000, 20000)
+      this.scene.time.delayedCall(delay, () => {
+        if (this.scene.cats && this.scene.cats.length > 0) {
+          const cat = this.scene.cats[Phaser.Math.Between(0, this.scene.cats.length - 1)]
+          const line = CAT_CHATTER[Phaser.Math.Between(0, CAT_CHATTER.length - 1)]
+          this._showSpeechBubble(cat.x, cat.y, line)
+        }
+        scheduleNext()
+      })
+    }
+    scheduleNext()
+  }
+
+  _showSpeechBubble(x, y, text) {
+    const s = this.scene
+    const bubble = s.add.text(x, y - 40, `💬 ${text}`, {
+      fontSize: '12px',
+      fontFamily: 'monospace',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 3,
+      backgroundColor: '#1a1a2ecc',
+      padding: { x: 6, y: 4 },
+    }).setOrigin(0.5, 1).setDepth(18)
+
+    s.tweens.add({
+      targets: bubble,
+      y: y - 70,
+      alpha: 0,
+      duration: 2500,
+      delay: 1500,
+      onComplete: () => bubble.destroy(),
+    })
+  }
+
+  // -----------------------------------------------------------
+  // Scrap quip
+  // -----------------------------------------------------------
+
+  getScrapQuip(amount) {
+    const quip = SCRAP_QUIPS[Phaser.Math.Between(0, SCRAP_QUIPS.length - 1)]
+    return quip(amount)
+  }
+
+  // -----------------------------------------------------------
+  // Events
+  // -----------------------------------------------------------
 
   _bindEvents() {
     this.scene.events.on('scrapsChanged', (scraps) => {
@@ -364,6 +573,8 @@ export default class HUD {
 
       if (ratio < 0.3 && !this._dirtPulsing) {
         this._dirtPulsing = true
+        this._dirtLabel.setText('😱 THE DIRT IS FADING!')
+        this._dirtLabel.setColor('#ef5350')
         this.scene.tweens.add({
           targets: this._dirtBar,
           alpha: 0.3,
@@ -373,6 +584,8 @@ export default class HUD {
         })
       } else if (ratio >= 0.3 && this._dirtPulsing) {
         this._dirtPulsing = false
+        this._dirtLabel.setText('🏠 DIRT METER')
+        this._dirtLabel.setColor('#a5d6a7')
         this.scene.tweens.killTweensOf(this._dirtBar)
         this._dirtBar.setAlpha(1)
       }
@@ -382,6 +595,10 @@ export default class HUD {
       this._waveText.setText(`Wave ${wave} / ${total}`)
       this._btnBg.setVisible(false)
       this._btnText.setVisible(false)
+
+      const subtitle = wave <= WAVE_SUBTITLES.length
+        ? WAVE_SUBTITLES[wave - 1]
+        : 'The invasion continues...'
 
       const announcement = this.scene.add.text(
         GAME.width / 2, GAME.height / 2 - 40,
@@ -395,13 +612,28 @@ export default class HUD {
         }
       ).setScrollFactor(0).setDepth(30).setOrigin(0.5).setAlpha(0)
 
+      const sub = this.scene.add.text(
+        GAME.width / 2, GAME.height / 2 + 30,
+        subtitle,
+        {
+          fontSize: '18px',
+          fontFamily: 'monospace',
+          color: '#b0bec5',
+          stroke: '#000000',
+          strokeThickness: 3,
+        }
+      ).setScrollFactor(0).setDepth(30).setOrigin(0.5).setAlpha(0)
+
       this.scene.tweens.add({
-        targets: announcement,
+        targets: [announcement, sub],
         alpha: 1,
         duration: 300,
-        hold: 600,
+        hold: 800,
         yoyo: true,
-        onComplete: () => announcement.destroy(),
+        onComplete: () => {
+          announcement.destroy()
+          sub.destroy()
+        },
       })
     })
 
@@ -419,7 +651,6 @@ export default class HUD {
         .setText(`${cat.name}${stars}\nDmg:${cat.damage} Rng:${cat.range}`)
         .setColor('#e0e0e0')
 
-      // Upgrade button
       if (upgCost) {
         this._upgradeTxt.setText(`⬆ ${upgCost}💰`)
         this._upgradeTxt.setColor(this.scraps >= upgCost ? '#90caf9' : '#ef5350')
@@ -432,17 +663,12 @@ export default class HUD {
       this._adoptBtn.setVisible(true)
       this._adoptTxt.setVisible(true)
 
-      // Trigger button
       if (cat.canTrigger()) {
         const cooldownLeft = Math.ceil(cat._triggerCooldown / 1000)
-        const label = cooldownLeft > 0 ? `⚡ TRIGGER (${cooldownLeft}s)` : '⚡ TRIGGER!'
-        this._triggerTxt.setText(label)
+        this._triggerTxt.setText(cooldownLeft > 0 ? `⚡ TRIGGER (${cooldownLeft}s)` : '⚡ TRIGGER!')
         this._triggerTxt.setColor(cat._triggerCooldown <= 0 ? '#ffd700' : '#546e7a')
         this._triggerBtn.setVisible(true)
         this._triggerTxt.setVisible(true)
-      } else if (cat.level >= 5 && !cat._hasTrigger()) {
-        this._triggerBtn.setVisible(false)
-        this._triggerTxt.setVisible(false)
       } else {
         this._triggerBtn.setVisible(false)
         this._triggerTxt.setVisible(false)
@@ -459,17 +685,9 @@ export default class HUD {
       this._triggerTxt.setVisible(false)
     })
 
-    // Trigger target mode — show crosshair prompt
-    this.scene.events.on('awaitingTriggerTarget', (cat) => {
-      this._awaitingTriggerTarget = true
-      this._triggerCat = cat
+    this.scene.events.on('awaitingTriggerTarget', () => {
       this._triggerTxt.setText('🎯 Click target on map...')
       this._triggerTxt.setColor('#ff9800')
-    })
-
-    this.scene.events.on('triggerTargetCancelled', () => {
-      this._awaitingTriggerTarget = false
-      this._triggerCat = null
     })
   }
 }
