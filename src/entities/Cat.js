@@ -1,6 +1,12 @@
 import * as Phaser from 'phaser'
 import { CATS, UPGRADE_COSTS, SETTINGS } from '../config/GameConfig.js'
 
+// Maps cat types to their loaded sprite keys
+// As you add more sprites, add them here
+const CAT_SPRITES = {
+  kitten: 'cat_kitten',
+}
+
 export default class Cat {
   constructor(scene, type, x, y) {
     this.scene = scene
@@ -35,12 +41,18 @@ export default class Cat {
     this.rangeCircle.setStrokeStyle(1, 0xffffff, 0.2)
     this.rangeCircle.setVisible(false)
 
-    this.body = scene.add.circle(0, 0, this.radius, this.color)
-    this.body.setStrokeStyle(2, 0xffffff, 0.4)
-
-    this.label = scene.add.text(0, 0, this.emoji, {
-      fontSize: `${this.radius}px`
-    }).setOrigin(0.5)
+    // Use sprite if available, otherwise fall back to circle + emoji
+    const spriteKey = CAT_SPRITES[type]
+    if (spriteKey && scene.textures.exists(spriteKey)) {
+      this.body = scene.add.image(0, 0, spriteKey)
+      this.body.setDisplaySize(this.radius * 2, this.radius * 2)
+    } else {
+      this.body = scene.add.circle(0, 0, this.radius, this.color)
+      this.body.setStrokeStyle(2, 0xffffff, 0.4)
+      this.label = scene.add.text(0, 0, this.emoji, {
+        fontSize: `${this.radius}px`
+      }).setOrigin(0.5)
+    }
 
     this.levelText = scene.add.text(0, this.radius + 6, '', {
       fontSize: '10px',
@@ -48,7 +60,11 @@ export default class Cat {
       color: '#ffffff',
     }).setOrigin(0.5, 0)
 
-    this.container.add([this.rangeCircle, this.body, this.label, this.levelText])
+    // Add to container — label is optional so check first
+    const containerItems = [this.rangeCircle, this.body]
+    if (this.label) containerItems.push(this.label)
+    containerItems.push(this.levelText)
+    this.container.add(containerItems)
 
     this.body.setInteractive({ useHandCursor: true })
     this.body.on('pointerover', () => this.rangeCircle.setVisible(true))
@@ -108,7 +124,6 @@ export default class Cat {
       onComplete: () => burst.destroy(),
     })
 
-    // Notify HUD to refresh
     this.scene.events.emit('catSelected', this)
   }
 
@@ -125,18 +140,15 @@ export default class Cat {
       this._triggerCooldown -= scaledDelta
     }
 
-    // --- Tuxedo — buff adjacent cats ---
     if (this.type === 'tuxedo') {
       this._applyTuxedoBuff()
       return
     }
 
-    // --- Persian — slow aura ---
     if (this.type === 'persian') {
       this._applyPersianSlow()
     }
 
-    // --- Alley Cat — pack bonus ---
     if (this.type === 'alley_cat') {
       this._applyAlleyCatBonus()
     }
@@ -166,15 +178,12 @@ export default class Cat {
   }
 
   _applyAlleyCatBonus() {
-    // Count nearby alley cats
     let nearbyCount = 0
     for (const cat of this.scene.cats) {
       if (cat === this) continue
       if (cat.type !== 'alley_cat') continue
       if (Math.hypot(cat.x - this.x, cat.y - this.y) <= 120) nearbyCount++
     }
-
-    // Each nearby alley cat gives a 15% damage bonus — stored as a multiplier
     this._alleyCatBonus = 1 + nearbyCount * 0.15
   }
 
@@ -227,7 +236,6 @@ export default class Cat {
   }
 
   _attack(target) {
-    // Apply alley cat bonus if present
     const bonusMultiplier = this._alleyCatBonus || 1
     const finalDamage = Math.round(this.damage * bonusMultiplier)
 
@@ -240,6 +248,7 @@ export default class Cat {
       this._spawnProjectile(target)
     }
 
+    // Attack animation — scale pulse on sprite or circle
     this.scene.tweens.add({
       targets: this.body,
       scaleX: 1.3,
@@ -261,7 +270,6 @@ export default class Cat {
   }
 
   _chonkAOE() {
-    // Shockwave hits ALL vacuums in range
     const shockwave = this.scene.add.circle(this.x, this.y, this.range, this.color, 0.3)
     this.scene.tweens.add({
       targets: shockwave,
@@ -282,8 +290,6 @@ export default class Cat {
   }
 
   _ragdollBoomerang(finalDamage) {
-    // Launch self as arc across the path, hit everything along the way
-    // Distance bonus — more damage further from target
     const target = this._target
     if (!target) return
 
@@ -291,7 +297,6 @@ export default class Cat {
     const distBonus = Math.min(2.0, 1 + dist / 400)
     const boostedDamage = Math.round(finalDamage * distBonus)
 
-    // Visual arc
     const arc = this.scene.add.circle(this.x, this.y, this.radius, this.color, 0.8)
     const midX = (this.x + target.container.x) / 2
     const midY = Math.min(this.y, target.container.y) - 80
@@ -310,14 +315,12 @@ export default class Cat {
           duration: 180,
           ease: 'Quad.easeIn',
           onComplete: () => {
-            // Hit all vacuums near the landing point
             for (const vacuum of this.scene.vacuums) {
               if (!vacuum.alive) continue
               if (vacuum.distanceTo(target.container.x, target.container.y) <= 60) {
                 vacuum.takeDamage(boostedDamage)
               }
             }
-            // Boomerang back
             this.scene.tweens.add({
               targets: arc,
               x: this.x,
@@ -332,10 +335,6 @@ export default class Cat {
     })
   }
 
-  // -----------------------------------------------------------
-  // Triggerables
-  // -----------------------------------------------------------
-
   canTrigger() {
     return this.level >= 5 && this._triggerCooldown <= 0 && this._hasTrigger()
   }
@@ -348,39 +347,26 @@ export default class Cat {
     if (!this.canTrigger()) return
 
     switch (this.type) {
-      case 'kitten':
-        this._triggerKitten()
-        break
-      case 'persian':
-        this._triggerPersian()
-        break
-      case 'siamese':
-        this._triggerSiamese(targetX, targetY)
-        break
-      case 'bengal':
-        this._triggerBengal()
-        break
-      case 'ragdoll':
-        this._triggerRagdoll(targetX, targetY)
-        break
-      case 'chonk':
-        this._triggerChonk(targetX, targetY)
-        break
+      case 'kitten': this._triggerKitten(); break
+      case 'persian': this._triggerPersian(); break
+      case 'siamese': this._triggerSiamese(targetX, targetY); break
+      case 'bengal': this._triggerBengal(); break
+      case 'ragdoll': this._triggerRagdoll(targetX, targetY); break
+      case 'chonk': this._triggerChonk(targetX, targetY); break
     }
 
-    this._triggerCooldown = 15000 // 15 second cooldown for all triggerables
+    this._triggerCooldown = 15000
     this.scene.events.emit('catSelected', this)
   }
 
   _triggerKitten() {
-    // All Level 5 kittens rapid swipe for 3 seconds
     const kittens = this.scene.cats.filter(c => c.type === 'kitten' && c.level >= 5).slice(0, 10)
     kittens.forEach(k => {
       const originalFireRate = k.fireRate
       k.fireRate = 80
       this.scene.tweens.add({
         targets: k.body,
-        fillColor: 0xff4444,
+        alpha: 0.5,
         duration: 200,
         yoyo: true,
         repeat: 7,
@@ -393,14 +379,13 @@ export default class Cat {
   }
 
   _triggerPersian() {
-    // Shield wall on path — damages vacuums passing through for 5 seconds
     const shield = this.scene.add.rectangle(
       this.scene.waypoints[Math.floor(this.scene.waypoints.length / 2)].x,
       this.scene.waypoints[Math.floor(this.scene.waypoints.length / 2)].y,
       20, 80, 0xce93d8, 0.7
     ).setDepth(5)
 
-    const interval = this.scene.time.addEvent({
+    this.scene.time.addEvent({
       delay: 300,
       repeat: 16,
       callback: () => {
@@ -413,15 +398,11 @@ export default class Cat {
       }
     })
 
-    this.scene.time.delayedCall(5000, () => {
-      shield.destroy()
-    })
-
+    this.scene.time.delayedCall(5000, () => shield.destroy())
     this._showTriggerText(this.x, this.y, '🛡️ SHIELD WALL!')
   }
 
   _triggerSiamese(tx, ty) {
-    // Sticky hairball rolls from target back toward start dragging vacuums
     if (tx === null) return
     const ball = this.scene.add.circle(tx, ty, 12, 0xdce8f0, 0.9).setDepth(5)
     const startWp = this.scene.waypoints[0]
@@ -448,7 +429,6 @@ export default class Cat {
   }
 
   _triggerBengal() {
-    // 15 seconds of dramatically faster attacks and damage boost
     const originalFireRate = this.fireRate
     const originalDamage = this.damage
     this.fireRate = Math.round(this.fireRate * 0.25)
@@ -470,7 +450,6 @@ export default class Cat {
   }
 
   _triggerRagdoll(tx, ty) {
-    // Massive arc across entire section
     if (tx === null) return
     const arc = this.scene.add.circle(this.x, this.y, this.radius * 1.5, this.color, 0.9)
     const midX = (this.x + tx) / 2
@@ -490,7 +469,6 @@ export default class Cat {
           duration: 250,
           ease: 'Quad.easeIn',
           onComplete: () => {
-            // Hit everything in a wide radius
             for (const vacuum of this.scene.vacuums) {
               if (!vacuum.alive) continue
               if (vacuum.distanceTo(tx, ty) <= 120) {
@@ -512,9 +490,7 @@ export default class Cat {
   }
 
   _triggerChonk(tx, ty) {
-    // Drop from above — shadow appears then Chonk slams down
     if (tx === null) return
-
     const shadow = this.scene.add.ellipse(tx, ty, 60, 30, 0x000000, 0.4).setDepth(4)
     const bomb = this.scene.add.text(tx, ty - 300, '🐾', {
       fontSize: '48px'
@@ -530,7 +506,6 @@ export default class Cat {
         shadow.destroy()
         this.scene.cameras.main.shake(400, 0.015)
 
-        // Massive AOE
         const blast = this.scene.add.circle(tx, ty, 100, this.color, 0.4).setDepth(5)
         this.scene.tweens.add({
           targets: blast,
