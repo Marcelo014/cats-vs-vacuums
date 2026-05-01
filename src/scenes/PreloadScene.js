@@ -6,7 +6,6 @@ export default class PreloadScene extends Phaser.Scene {
   }
 
   preload() {
-    // Loading bar background
     const W = 1280
     const H = 720
 
@@ -25,6 +24,9 @@ export default class PreloadScene extends Phaser.Scene {
 
     // Cat sprites
     this.load.image('cat_kitten', '/assets/sprites/kitten_idle.png')
+
+    // Vacuum sprites
+    this.load.image('vacuum_zoomba', '/assets/sprites/zoomba_idle.png')
   }
 
   create() {

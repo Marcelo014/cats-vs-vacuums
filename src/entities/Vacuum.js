@@ -1,5 +1,9 @@
-import { VACUUMS, SETTINGS } from '../config/GameConfig.js'
 import * as Phaser from 'phaser'
+import { VACUUMS, SETTINGS } from '../config/GameConfig.js'
+
+const VACUUM_SPRITES = {
+  zoomba: 'vacuum_zoomba',
+}
 
 export default class Vacuum {
   constructor(scene, type, waypoints) {
@@ -24,20 +28,28 @@ export default class Vacuum {
     this.immune = config.immune || []
     this.spawnsOnDeath = config.spawnsOnDeath || 0
 
-    const start = waypoints[0]
+    this.spriteKey = VACUUM_SPRITES[type] || null
 
+    const start = waypoints[0]
     this.container = scene.add.container(start.x, start.y)
 
-    this.body = scene.add.circle(0, 0, this.radius, this.color)
+    if (this.spriteKey && scene.textures.exists(this.spriteKey)) {
+      this.body = scene.add.image(0, 0, this.spriteKey)
+      this.body.setDisplaySize(this.radius * 2, this.radius * 2)
+    } else {
+      this.body = scene.add.circle(0, 0, this.radius, this.color)
+      this.label = scene.add.text(0, 0, this.emoji, {
+        fontSize: `${this.radius}px`
+      }).setOrigin(0.5)
+    }
 
     this.hpBarBg = scene.add.rectangle(0, -this.radius - 8, 40, 5, 0x333333)
     this.hpBar = scene.add.rectangle(-20, -this.radius - 8, 40, 5, 0x4caf50).setOrigin(0, 0.5)
 
-    this.label = scene.add.text(0, 0, this.emoji, {
-      fontSize: `${this.radius}px`
-    }).setOrigin(0.5)
-
-    this.container.add([this.body, this.hpBarBg, this.hpBar, this.label])
+    const containerItems = [this.body]
+    if (this.label) containerItems.push(this.label)
+    containerItems.push(this.hpBarBg, this.hpBar)
+    this.container.add(containerItems)
 
     scene.vacuums.push(this)
   }
@@ -45,7 +57,6 @@ export default class Vacuum {
   update(delta) {
     if (!this.alive || this.reachedEnd) return
 
-    // Scale movement by game speed
     const scaledDelta = delta * SETTINGS.gameSpeed
 
     const target = this.waypoints[this.waypointIndex]
@@ -78,6 +89,11 @@ export default class Vacuum {
       ratio > 0.5 ? 0x4caf50 :
       ratio > 0.25 ? 0xff9800 : 0xf44336
     )
+
+    if (this.spriteKey) {
+      const angle = Math.atan2(dy, dx)
+      this.body.setRotation(angle)
+    }
   }
 
   takeDamage(amount, attackType = null) {
@@ -95,7 +111,6 @@ export default class Vacuum {
 
     this.hp -= amount
 
-    // Damage number floating up
     const dmgTxt = this.scene.add.text(
       this.container.x + Phaser.Math.Between(-10, 10),
       this.container.y - this.radius,
@@ -131,8 +146,9 @@ export default class Vacuum {
     this.slowMultiplier = Math.min(this.slowMultiplier, multiplier)
     this.scene.time.delayedCall(duration, () => {
       this.slowMultiplier = 1.0
-      // Restore original color when slow wears off
-      this.body.setFillStyle(this.color)
+      if (!this.spriteKey) {
+        this.body.setFillStyle(this.color)
+      }
     })
   }
 
@@ -146,7 +162,6 @@ export default class Vacuum {
   _die() {
     this.alive = false
 
-    // Death particle burst
     for (let i = 0; i < 6; i++) {
       const angle = (i / 6) * Math.PI * 2
       const particle = this.scene.add.circle(
