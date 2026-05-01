@@ -51,7 +51,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
     this.add.text(W / 2, 160, 'CATS', {
       fontSize: '110px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: '#f9a825',
       stroke: '#000000',
       strokeThickness: 6,
@@ -59,7 +59,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
     this.add.text(W / 2, 270, 'VS', {
       fontSize: '48px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: '#ffffff',
       stroke: '#000000',
       strokeThickness: 4,
@@ -67,7 +67,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
     this.add.text(W / 2, 350, 'VACUUMS', {
       fontSize: '110px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: '#90caf9',
       stroke: '#000000',
       strokeThickness: 6,
@@ -75,7 +75,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
     this.add.text(W / 2, 450, 'Defend the dirt. Protect the mess. Never surrender.', {
       fontSize: '18px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: '#78909c',
     }).setOrigin(0.5)
 
@@ -89,7 +89,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
     this.add.text(W - 12, H - 12, 'v0.1 — Week 1 Build', {
       fontSize: '10px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: '#37474f',
     }).setOrigin(1, 1)
   }
@@ -100,7 +100,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
     const txt = this.add.text(x, y, label, {
       fontSize: '18px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: textColor,
     }).setOrigin(0.5)
 
@@ -121,7 +121,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
     this.add.text(W / 2, H / 2 - 180, 'HOW TO PLAY', {
       fontSize: '24px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: '#ffd54f',
     }).setOrigin(0.5)
 
@@ -140,7 +140,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
     this.add.text(W / 2 - 270, H / 2 - 130, lines.join('\n\n'), {
       fontSize: '13px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: '#b0bec5',
       lineSpacing: 2,
       wordWrap: { width: 540 },
@@ -148,7 +148,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
     const closeBtn = this.add.text(W / 2, H / 2 + 185, '[ CLOSE ]', {
       fontSize: '18px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: '#ef9a9a',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true })
 

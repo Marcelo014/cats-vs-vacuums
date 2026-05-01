@@ -1,20 +1,18 @@
-import { GAME, DIRT, SETTINGS } from '../config/GameConfig.js'
 import * as Phaser from 'phaser'
+import { GAME, DIRT, SETTINGS } from '../config/GameConfig.js'
 
 const CAT_PANEL = [
-  { type: 'kitten',     label: '🐱 Kitten',    cost: 50,  color: '#f9a825' },
-  { type: 'tabby',      label: '🐈 Tabby',      cost: 125, color: '#e67e22' },
-  { type: 'alley_cat',  label: '😼 Alley',      cost: 75,  color: '#95a5a6' },
-  { type: 'siamese',    label: '🐈 Siamese',    cost: 200, color: '#ecf0f1' },
-  { type: 'maine_coon', label: '🦁 M.Coon',     cost: 225, color: '#8d6e63' },
-  { type: 'persian',    label: '👑 Persian',    cost: 150, color: '#ce93d8' },
-  { type: 'bengal',     label: '🐯 Bengal',     cost: 250, color: '#ff8f00' },
-  { type: 'ragdoll',    label: '💤 Ragdoll',    cost: 175, color: '#fce4ec' },
-  { type: 'chonk',      label: '🐾 Chonk',      cost: 150, color: '#4db6ac' },
-  { type: 'tuxedo',     label: '🎩 Tuxedo',     cost: 300, color: '#90a4ae' },
+  { type: 'kitten',     label: '🐱 Kitten',    cost: 50,  color: '#FFD166' },
+  { type: 'tabby',      label: '🐈 Tabby',      cost: 125, color: '#FF9A3C' },
+  { type: 'alley_cat',  label: '😼 Alley',      cost: 75,  color: '#C8D6E5' },
+  { type: 'siamese',    label: '🐈 Siamese',    cost: 200, color: '#FFFFFF' },
+  { type: 'maine_coon', label: '🦁 M.Coon',     cost: 225, color: '#C4956A' },
+  { type: 'persian',    label: '👑 Persian',    cost: 150, color: '#D9A7FF' },
+  { type: 'bengal',     label: '🐯 Bengal',     cost: 250, color: '#FFB347' },
+  { type: 'ragdoll',    label: '💤 Ragdoll',    cost: 175, color: '#FFD1DC' },
+  { type: 'chonk',      label: '🐾 Chonk',      cost: 150, color: '#7FFFD4' },
+  { type: 'tuxedo',     label: '🎩 Tuxedo',     cost: 300, color: '#B8C6DB' },
 ]
-
-const TARGETED_TRIGGERS = ['siamese', 'ragdoll', 'chonk']
 
 const WAVE_SUBTITLES = [
   'Here they come.',
@@ -41,7 +39,7 @@ const CAT_CHATTER = [
   '*hissing intensifies*',
   'Come closer. I dare you.',
   'This floor is sacred.',
-  'I haven\'t napped yet today and I am ANGRY.',
+  'I haven\'t napped yet and I am ANGRY.',
 ]
 
 const SCRAP_QUIPS = [
@@ -54,112 +52,155 @@ const SCRAP_QUIPS = [
   (n) => `+${n} scraps!`,
 ]
 
+const FONT = 'Fredoka One'
+const FONT_BODY = 'Fredoka'
+
 export default class HUD {
   constructor(scene, startingScraps) {
     this.scene = scene
     this.scraps = startingScraps
     this.dirt = DIRT.maxDirt
     this._selectedBtn = null
-    this._awaitingTriggerTarget = false
-    this._triggerCat = null
     this._dirtPulsing = false
 
-    this._buildScrapsDisplay()
-    this._buildDirtMeter()
-    this._buildWaveDisplay()
-    this._buildNextWaveButton()
-    this._buildSpeedControl()
-    this._buildPauseButton()
-    this._buildCatPanel()
+    this._buildTopBar()
+    this._buildBottomPanel()
     this._buildSelectedCatPanel()
     this._bindEvents()
     this._startCatChatter()
   }
 
-  _buildScrapsDisplay() {
-    const s = this.scene
+  // -----------------------------------------------------------
+  // TOP BAR
+  // -----------------------------------------------------------
 
-    s.add.text(20, 20, '💰', { fontSize: '24px' })
-      .setScrollFactor(0).setDepth(10)
-
-    this._scrapsText = s.add.text(50, 20, `${this.scraps}`, {
-      fontSize: '24px',
-      fontFamily: 'monospace',
-      color: '#ffd54f',
-    }).setScrollFactor(0).setDepth(10)
-  }
-
-  _buildDirtMeter() {
+  _buildTopBar() {
     const s = this.scene
     const W = GAME.width
 
-    this._dirtLabel = s.add.text(W / 2, 14, '🏠 DIRT METER', {
-      fontSize: '11px',
-      fontFamily: 'monospace',
-      color: '#a5d6a7',
-    }).setScrollFactor(0).setDepth(10).setOrigin(0.5, 0)
-
-    s.add.rectangle(W / 2, 34, 240, 14, 0x333333)
+    // Top bar background
+    s.add.rectangle(W / 2, 30, W, 60, 0x1E2A3A, 1)
       .setScrollFactor(0).setDepth(10)
 
-    this._dirtBar = s.add.rectangle(W / 2 - 120, 34, 240, 14, 0x66bb6a)
+    // --- Scraps (left) ---
+    s.add.text(20, 30, '💰', { fontSize: '22px' })
       .setScrollFactor(0).setDepth(11).setOrigin(0, 0.5)
 
-    this._dirtPct = s.add.text(W / 2, 34, '100%', {
-      fontSize: '11px',
-      fontFamily: 'monospace',
-      color: '#ffffff',
-    }).setScrollFactor(0).setDepth(12).setOrigin(0.5)
-  }
+    this._scrapsText = s.add.text(48, 30, `${this.scraps}`, {
+      fontSize: '22px',
+      fontFamily: FONT,
+      color: '#FFD166',
+    }).setScrollFactor(0).setDepth(11).setOrigin(0, 0.5)
 
-  _buildWaveDisplay() {
-    const s = this.scene
-    const W = GAME.width
+    // --- Dirt meter (center) ---
+    const dirtX = W / 2
 
-    this._waveText = s.add.text(W - 20, 20, 'Wave 0 / 0', {
-      fontSize: '20px',
-      fontFamily: 'monospace',
-      color: '#b0bec5',
-    }).setScrollFactor(0).setDepth(10).setOrigin(1, 0)
-  }
-
-  _buildNextWaveButton() {
-    const s = this.scene
-    const W = GAME.width
-    const H = GAME.height
-
-    this._btnBg = s.add.rectangle(W - 90, H - 36, 140, 40, 0x1b5e20)
-      .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
-
-    this._btnText = s.add.text(W - 90, H - 36, '▶ NEXT WAVE', {
+    this._dirtLabel = s.add.text(dirtX, 10, '🏠 DIRT METER', {
       fontSize: '13px',
-      fontFamily: 'monospace',
-      color: '#a5d6a7',
-    }).setScrollFactor(0).setDepth(11).setOrigin(0.5)
+      fontFamily: FONT_BODY,
+      color: '#7FFFD4',
+    }).setScrollFactor(0).setDepth(11).setOrigin(0.5, 0)
 
-    this._btnBg.on('pointerover', () => {
-      this._btnBg.setFillStyle(0x2e7d32)
-      this._btnText.setColor('#ffffff')
-    })
-    this._btnBg.on('pointerout', () => {
-      this._btnBg.setFillStyle(0x1b5e20)
-      this._btnText.setColor('#a5d6a7')
-    })
-    this._btnBg.on('pointerdown', () => {
-      this.scene.events.emit('startNextWave')
-    })
+    // Bar bg
+    s.add.rectangle(dirtX, 40, 260, 16, 0x0D1B2A)
+      .setScrollFactor(0).setDepth(11)
+
+    this._dirtBar = s.add.rectangle(dirtX - 130, 40, 260, 16, 0x56CF7F)
+      .setScrollFactor(0).setDepth(12).setOrigin(0, 0.5)
+
+    this._dirtPct = s.add.text(dirtX, 40, '100%', {
+      fontSize: '12px',
+      fontFamily: FONT_BODY,
+      color: '#ffffff',
+    }).setScrollFactor(0).setDepth(13).setOrigin(0.5)
+
+    // --- Wave counter (right) ---
+    this._waveText = s.add.text(W - 20, 30, 'Wave 0 / 0', {
+      fontSize: '22px',
+      fontFamily: FONT,
+      color: '#B8C6DB',
+    }).setScrollFactor(0).setDepth(11).setOrigin(1, 0.5)
+
+    // --- Pause button (top right, before wave text) ---
+    const pauseBg = s.add.rectangle(W - 220, 30, 44, 36, 0x2D4A6B)
+      .setScrollFactor(0).setDepth(11).setInteractive({ useHandCursor: true })
+
+    s.add.text(W - 220, 30, '⏸', { fontSize: '18px' })
+      .setScrollFactor(0).setDepth(12).setOrigin(0.5)
+
+    pauseBg.on('pointerover', () => pauseBg.setFillStyle(0x3D6A9B))
+    pauseBg.on('pointerout', () => pauseBg.setFillStyle(0x2D4A6B))
+    pauseBg.on('pointerdown', () => s.events.emit('pauseGameRequest'))
   }
 
-  _buildSpeedControl() {
+  // -----------------------------------------------------------
+  // BOTTOM PANEL
+  // -----------------------------------------------------------
+
+  _buildBottomPanel() {
     const s = this.scene
     const W = GAME.width
     const H = GAME.height
+    const panelH = 80
+    const panelY = H - panelH / 2
 
-    s.add.text(W - 260, H - 50, '⚡ SPEED', {
+    // Panel background
+    s.add.rectangle(W / 2, panelY, W, panelH, 0x1E2A3A)
+      .setScrollFactor(0).setDepth(9)
+
+    // Divider line at top of panel
+    s.add.rectangle(W / 2, H - panelH, W, 2, 0x2D4A6B)
+      .setScrollFactor(0).setDepth(9)
+
+    // Cat buttons — 10 cats, evenly spaced across most of the width
+    // Reserve left 160px for selected cat panel, right 180px for speed + next wave
+    const usableW = W - 160 - 200
+    const btnW = Math.floor(usableW / 10) - 4
+    const startX = 160 + (usableW - (btnW + 4) * 10) / 2 + btnW / 2 + 10
+
+    this._catBtns = []
+
+    CAT_PANEL.forEach((cat, i) => {
+      const bx = startX + i * (btnW + 4)
+
+      const btn = s.add.rectangle(bx, panelY, btnW, panelH - 8, 0x243344)
+        .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
+
+      const txt = s.add.text(bx, panelY, `${cat.label}\n${cat.cost}💰`, {
+        fontSize: '11px',
+        fontFamily: FONT_BODY,
+        color: cat.color,
+        align: 'center',
+        lineSpacing: 1,
+      }).setScrollFactor(0).setDepth(11).setOrigin(0.5)
+
+      btn.on('pointerover', () => {
+        if (this._selectedBtn !== btn) btn.setFillStyle(0x2D4A6B)
+      })
+      btn.on('pointerout', () => {
+        if (this._selectedBtn !== btn) btn.setFillStyle(0x243344)
+      })
+      btn.on('pointerdown', () => {
+        if (this._selectedBtn) this._selectedBtn.setFillStyle(0x243344)
+        this._selectedBtn = btn
+        btn.setFillStyle(0x2A6B3A)
+        s.events.emit('catTypeSelected', cat.type)
+      })
+
+      this._catBtns.push(btn)
+    })
+
+    // Select kitten by default
+    this._selectedBtn = this._catBtns[0]
+    this._catBtns[0].setFillStyle(0x2A6B3A)
+
+    // --- Speed control (inside panel, right side) ---
+    const speedX = W - 185
+    s.add.text(speedX, H - panelH + 10, '⚡ SPEED', {
       fontSize: '11px',
-      fontFamily: 'monospace',
-      color: '#78909c',
-    }).setScrollFactor(0).setDepth(10)
+      fontFamily: FONT_BODY,
+      color: '#7FFFD4',
+    }).setScrollFactor(0).setDepth(10).setOrigin(0.5, 0)
 
     const speeds = [
       { label: '1x', value: 1 },
@@ -170,146 +211,116 @@ export default class HUD {
     this._speedBtns = []
 
     speeds.forEach((spd, i) => {
-      const bx = W - 255 + i * 40
-      const by = H - 30
+      const bx = speedX - 28 + i * 30
+      const by = panelY + 14
 
-      const bg = s.add.rectangle(bx, by, 34, 22, spd.value === 1 ? 0x1b5e20 : 0x1a1a2e)
+      const bg = s.add.rectangle(bx, by, 26, 22, spd.value === 1 ? 0x2A6B3A : 0x243344)
         .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
 
       const txt = s.add.text(bx, by, spd.label, {
         fontSize: '11px',
-        fontFamily: 'monospace',
-        color: spd.value === 1 ? '#a5d6a7' : '#546e7a',
+        fontFamily: FONT_BODY,
+        color: spd.value === 1 ? '#7FFFD4' : '#546e7a',
       }).setScrollFactor(0).setDepth(11).setOrigin(0.5)
 
       bg.on('pointerdown', () => {
         SETTINGS.gameSpeed = spd.value
         this._speedBtns.forEach((btn, j) => {
-          btn.bg.setFillStyle(speeds[j].value === spd.value ? 0x1b5e20 : 0x1a1a2e)
-          btn.txt.setColor(speeds[j].value === spd.value ? '#a5d6a7' : '#546e7a')
+          btn.bg.setFillStyle(speeds[j].value === spd.value ? 0x2A6B3A : 0x243344)
+          btn.txt.setColor(speeds[j].value === spd.value ? '#7FFFD4' : '#546e7a')
         })
       })
 
       this._speedBtns.push({ bg, txt })
     })
-  }
 
-  _buildPauseButton() {
-    const s = this.scene
-    const W = GAME.width
-
-    const bg = s.add.rectangle(W / 2, 26, 60, 30, 0x1a1a2e)
+    // --- Next Wave button (inside panel, far right) ---
+    this._btnBg = s.add.rectangle(W - 70, panelY, 110, panelH - 12, 0x2A6B3A)
       .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
 
-    s.add.text(W / 2, 26, '⏸', {
-      fontSize: '18px',
+    this._btnText = s.add.text(W - 70, panelY, '▶ NEXT\nWAVE', {
+      fontSize: '14px',
+      fontFamily: FONT,
+      color: '#7FFFD4',
+      align: 'center',
     }).setScrollFactor(0).setDepth(11).setOrigin(0.5)
 
-    bg.on('pointerover', () => bg.setFillStyle(0x2a2a3e))
-    bg.on('pointerout', () => bg.setFillStyle(0x1a1a2e))
-    bg.on('pointerdown', () => s.events.emit('pauseGameRequest'))
-  }
-
-  _buildCatPanel() {
-    const s = this.scene
-    const W = GAME.width
-    const H = GAME.height
-    const panelY = H - 36
-    const btnW = 88
-    const startX = 200
-
-    s.add.rectangle(W / 2, panelY, W, 72, 0x0d0d1a, 0.95)
-      .setScrollFactor(0).setDepth(9)
-
-    this._catBtns = []
-
-    CAT_PANEL.forEach((cat, i) => {
-      const bx = startX + i * (btnW + 4)
-      const btn = s.add.rectangle(bx, panelY, btnW, 64, 0x1a1a2e)
-        .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
-
-      const txt = s.add.text(bx, panelY, `${cat.label}\n${cat.cost}💰`, {
-        fontSize: '11px',
-        fontFamily: 'monospace',
-        color: cat.color,
-        align: 'center',
-        lineSpacing: 2,
-      }).setScrollFactor(0).setDepth(11).setOrigin(0.5)
-
-      btn.on('pointerover', () => {
-        if (this._selectedBtn !== btn) btn.setFillStyle(0x2a2a3e)
-      })
-      btn.on('pointerout', () => {
-        if (this._selectedBtn !== btn) btn.setFillStyle(0x1a1a2e)
-      })
-      btn.on('pointerdown', () => {
-        if (this._selectedBtn) this._selectedBtn.setFillStyle(0x1a1a2e)
-        this._selectedBtn = btn
-        btn.setFillStyle(0x1b5e20)
-        s.events.emit('catTypeSelected', cat.type)
-      })
-
-      this._catBtns.push(btn)
+    this._btnBg.on('pointerover', () => {
+      this._btnBg.setFillStyle(0x3A8B4A)
+      this._btnText.setColor('#ffffff')
     })
-
-    this._selectedBtn = this._catBtns[0]
-    this._catBtns[0].setFillStyle(0x1b5e20)
+    this._btnBg.on('pointerout', () => {
+      this._btnBg.setFillStyle(0x2A6B3A)
+      this._btnText.setColor('#7FFFD4')
+    })
+    this._btnBg.on('pointerdown', () => {
+      this.scene.events.emit('startNextWave')
+    })
   }
+
+  // -----------------------------------------------------------
+  // SELECTED CAT PANEL (bottom left)
+  // -----------------------------------------------------------
 
   _buildSelectedCatPanel() {
     const s = this.scene
     const H = GAME.height
-    const panelY = H - 36
+    const panelY = H - 40
+    const panelH = 80
 
-    s.add.rectangle(90, panelY, 160, 72, 0x0d0d1a, 0.95)
+    // Background
+    s.add.rectangle(80, H - panelH / 2, 150, panelH, 0x243344)
       .setScrollFactor(0).setDepth(9)
 
-    this._selectedCatText = s.add.text(90, panelY - 22, 'Click a cat\nto select', {
-      fontSize: '11px',
-      fontFamily: 'monospace',
-      color: '#78909c',
+    this._selectedCatText = s.add.text(80, H - panelH + 10, 'Select a cat\nto place', {
+      fontSize: '12px',
+      fontFamily: FONT_BODY,
+      color: '#7890A8',
       align: 'center',
-    }).setScrollFactor(0).setDepth(11).setOrigin(0.5)
+    }).setScrollFactor(0).setDepth(11).setOrigin(0.5, 0)
 
-    this._upgradeBtn = s.add.rectangle(55, panelY + 6, 68, 18, 0x1a237e)
+    // Upgrade button
+    this._upgradeBtn = s.add.rectangle(48, panelY + 8, 64, 20, 0x2D4A9B)
       .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
       .setVisible(false)
 
-    this._upgradeTxt = s.add.text(55, panelY + 6, '', {
+    this._upgradeTxt = s.add.text(48, panelY + 8, '', {
       fontSize: '10px',
-      fontFamily: 'monospace',
-      color: '#90caf9',
+      fontFamily: FONT_BODY,
+      color: '#90CAF9',
     }).setScrollFactor(0).setDepth(11).setOrigin(0.5).setVisible(false)
 
     this._upgradeBtn.on('pointerdown', () => s.events.emit('upgradeSelectedCat'))
 
-    this._adoptBtn = s.add.rectangle(125, panelY + 6, 68, 18, 0x4e342e)
+    // Adopt button
+    this._adoptBtn = s.add.rectangle(116, panelY + 8, 64, 20, 0x6B2A2A)
       .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
       .setVisible(false)
 
-    this._adoptTxt = s.add.text(125, panelY + 6, '🏠 Adopt', {
+    this._adoptTxt = s.add.text(116, panelY + 8, '🏠 Adopt', {
       fontSize: '10px',
-      fontFamily: 'monospace',
-      color: '#ef9a9a',
+      fontFamily: FONT_BODY,
+      color: '#FF9A9A',
     }).setScrollFactor(0).setDepth(11).setOrigin(0.5).setVisible(false)
 
     this._adoptBtn.on('pointerdown', () => s.events.emit('adoptOutSelectedCat'))
 
-    this._triggerBtn = s.add.rectangle(90, panelY + 26, 148, 18, 0x7b1fa2)
+    // Trigger button
+    this._triggerBtn = s.add.rectangle(80, panelY + 30, 140, 20, 0x6B2A9B)
       .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
       .setVisible(false)
 
-    this._triggerTxt = s.add.text(90, panelY + 26, '', {
+    this._triggerTxt = s.add.text(80, panelY + 30, '', {
       fontSize: '10px',
-      fontFamily: 'monospace',
-      color: '#ce93d8',
+      fontFamily: FONT_BODY,
+      color: '#D9A7FF',
     }).setScrollFactor(0).setDepth(11).setOrigin(0.5).setVisible(false)
 
     this._triggerBtn.on('pointerdown', () => s.events.emit('triggerSelectedCat'))
   }
 
   // -----------------------------------------------------------
-  // Merged pause + settings menu
+  // PAUSE MENU
   // -----------------------------------------------------------
 
   showPauseMenu() {
@@ -323,100 +334,78 @@ export default class HUD {
       .setScrollFactor(0).setDepth(40)
     this._pauseMenuItems.push(overlay)
 
-    const panel = s.add.rectangle(W / 2, H / 2, 380, 480, 0x0d0d1a)
-      .setScrollFactor(0).setDepth(41).setStrokeStyle(2, 0x37474f)
+    const panel = s.add.rectangle(W / 2, H / 2, 400, 500, 0x1E2A3A)
+      .setScrollFactor(0).setDepth(41)
     this._pauseMenuItems.push(panel)
 
-    // Cat sitting on top of panel for personality
-    const catDeco = s.add.text(W / 2, H / 2 - 230, '😾', {
-      fontSize: '36px',
+    // Cat deco
+    const catDeco = s.add.text(W / 2, H / 2 - 240, '😾', {
+      fontSize: '40px',
     }).setScrollFactor(0).setDepth(42).setOrigin(0.5)
     this._pauseMenuItems.push(catDeco)
 
-    // Bounce the cat
     s.tweens.add({
       targets: catDeco,
-      y: H / 2 - 240,
-      duration: 600,
+      y: H / 2 - 252,
+      duration: 700,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut',
     })
 
-    this._pauseMenuItems.push(s.add.text(W / 2, H / 2 - 190, '— PAUSED —', {
-      fontSize: '24px',
-      fontFamily: 'monospace',
-      color: '#ffd54f',
+    this._pauseMenuItems.push(s.add.text(W / 2, H / 2 - 200, 'PAUSED', {
+      fontSize: '36px',
+      fontFamily: FONT,
+      color: '#FFD166',
     }).setScrollFactor(0).setDepth(42).setOrigin(0.5))
 
-    this._pauseMenuItems.push(s.add.text(W / 2, H / 2 - 160, 'The dirt awaits your return.', {
-      fontSize: '12px',
-      fontFamily: 'monospace',
-      color: '#546e7a',
+    this._pauseMenuItems.push(s.add.text(W / 2, H / 2 - 165, 'The dirt awaits your return.', {
+      fontSize: '14px',
+      fontFamily: FONT_BODY,
+      color: '#7890A8',
     }).setScrollFactor(0).setDepth(42).setOrigin(0.5))
 
-    // Resume
+    // Buttons
     this._pauseMenuItems.push(...this._makePauseBtn(
-      W / 2, H / 2 - 100, '▶  RESUME', '#a5d6a7', 0x1b5e20,
+      W / 2, H / 2 - 110, '▶  RESUME', '#7FFFD4', 0x2A6B3A,
       () => s.events.emit('resumeGame')
     ))
 
-    // Restart
     this._pauseMenuItems.push(...this._makePauseBtn(
-      W / 2, H / 2 - 44, '↺  RESTART', '#90caf9', 0x1a237e,
-      () => {
-        this.hidePauseMenu()
-        s.scene.restart()
-      }
+      W / 2, H / 2 - 55, '↺  RESTART', '#90CAF9', 0x2D4A9B,
+      () => { this.hidePauseMenu(); s.scene.restart() }
     ))
 
-    // Sound toggle
     const soundLabel = () => `🔊 SFX: ${SETTINGS.sfxOn ? 'ON ✓' : 'OFF ✗'}`
     const [sBg, sTxt] = this._makePauseBtn(
-      W / 2, H / 2 + 12, soundLabel(), '#b0bec5', 0x263238,
-      () => {
-        SETTINGS.sfxOn = !SETTINGS.sfxOn
-        sTxt.setText(soundLabel())
-      }
+      W / 2, H / 2, soundLabel(), '#C8D6E5', 0x243344,
+      () => { SETTINGS.sfxOn = !SETTINGS.sfxOn; sTxt.setText(soundLabel()) }
     )
     this._pauseMenuItems.push(sBg, sTxt)
 
-    // Music toggle
     const musicLabel = () => `🎵 Music: ${SETTINGS.musicOn ? 'ON ✓' : 'OFF ✗'}`
     const [mBg, mTxt] = this._makePauseBtn(
-      W / 2, H / 2 + 68, musicLabel(), '#b0bec5', 0x263238,
-      () => {
-        SETTINGS.musicOn = !SETTINGS.musicOn
-        mTxt.setText(musicLabel())
-      }
+      W / 2, H / 2 + 55, musicLabel(), '#C8D6E5', 0x243344,
+      () => { SETTINGS.musicOn = !SETTINGS.musicOn; mTxt.setText(musicLabel()) }
     )
     this._pauseMenuItems.push(mBg, mTxt)
 
-    // Auto wave toggle
     const autoLabel = () => `⏭️  Auto Wave: ${SETTINGS.autoPlay ? 'ON ✓' : 'OFF ✗'}`
     const [aBg, aTxt] = this._makePauseBtn(
-      W / 2, H / 2 + 124, autoLabel(), '#b0bec5', 0x263238,
-      () => {
-        SETTINGS.autoPlay = !SETTINGS.autoPlay
-        aTxt.setText(autoLabel())
-      }
+      W / 2, H / 2 + 110, autoLabel(), '#C8D6E5', 0x243344,
+      () => { SETTINGS.autoPlay = !SETTINGS.autoPlay; aTxt.setText(autoLabel()) }
     )
     this._pauseMenuItems.push(aBg, aTxt)
 
-    // Main menu
     this._pauseMenuItems.push(...this._makePauseBtn(
-      W / 2, H / 2 + 190, '⬅  MAIN MENU', '#ef9a9a', 0x4e342e,
-      () => {
-        this.hidePauseMenu()
-        this._showQuitConfirm()
-      }
+      W / 2, H / 2 + 175, '⬅  MAIN MENU', '#FF9A9A', 0x6B2A2A,
+      () => { this.hidePauseMenu(); this._showQuitConfirm() }
     ))
 
-    // ESC hint
-    this._pauseMenuItems.push(s.add.text(W / 2, H / 2 + 230, 'Press ESC to resume', {
-      fontSize: '11px',
-      fontFamily: 'monospace',
-      color: '#263238',
+    this._pauseMenuItems.push(s.add.text(W / 2, H / 2 + 225, 'Press ESC to resume', {
+      fontSize: '12px',
+      fontFamily: FONT_BODY,
+      color: '#37474f',
     }).setScrollFactor(0).setDepth(42).setOrigin(0.5))
   }
 
@@ -429,23 +418,17 @@ export default class HUD {
 
   _makePauseBtn(x, y, label, textColor, bgColor, onClick) {
     const s = this.scene
-    const bg = s.add.rectangle(x, y, 300, 42, bgColor)
+    const bg = s.add.rectangle(x, y, 320, 44, bgColor)
       .setScrollFactor(0).setDepth(42).setInteractive({ useHandCursor: true })
 
     const txt = s.add.text(x, y, label, {
-      fontSize: '15px',
-      fontFamily: 'monospace',
+      fontSize: '16px',
+      fontFamily: FONT,
       color: textColor,
     }).setScrollFactor(0).setDepth(43).setOrigin(0.5)
 
-    bg.on('pointerover', () => {
-      bg.setAlpha(0.8)
-      txt.setScale(1.04)
-    })
-    bg.on('pointerout', () => {
-      bg.setAlpha(1)
-      txt.setScale(1)
-    })
+    bg.on('pointerover', () => { bg.setAlpha(0.8); txt.setScale(1.04) })
+    bg.on('pointerout', () => { bg.setAlpha(1); txt.setScale(1) })
     bg.on('pointerdown', onClick)
 
     return [bg, txt]
@@ -461,42 +444,40 @@ export default class HUD {
       .setScrollFactor(0).setDepth(50)
     items.push(overlay)
 
-    const panel = s.add.rectangle(W / 2, H / 2, 380, 240, 0x0d0d1a)
-      .setScrollFactor(0).setDepth(51).setStrokeStyle(2, 0x4e342e)
+    const panel = s.add.rectangle(W / 2, H / 2, 400, 260, 0x1E2A3A)
+      .setScrollFactor(0).setDepth(51)
     items.push(panel)
 
-    items.push(s.add.text(W / 2, H / 2 - 80, '😿  ABANDON THE DIRT?', {
-      fontSize: '20px',
-      fontFamily: 'monospace',
-      color: '#ef9a9a',
+    items.push(s.add.text(W / 2, H / 2 - 90, '😿  ABANDON THE DIRT?', {
+      fontSize: '22px',
+      fontFamily: FONT,
+      color: '#FF9A9A',
     }).setScrollFactor(0).setDepth(52).setOrigin(0.5))
 
-    items.push(s.add.text(W / 2, H / 2 - 40, 'The vacuums will win.\nThe dirt will be lost forever.', {
-      fontSize: '13px',
-      fontFamily: 'monospace',
-      color: '#546e7a',
+    items.push(s.add.text(W / 2, H / 2 - 45, 'The vacuums will win.\nThe dirt will be lost forever.', {
+      fontSize: '14px',
+      fontFamily: FONT_BODY,
+      color: '#7890A8',
       align: 'center',
     }).setScrollFactor(0).setDepth(52).setOrigin(0.5))
 
     const cleanup = () => items.forEach(i => i.destroy())
 
-    const [yesBg, yesTxt] = this._makePauseBtn(W / 2 - 85, H / 2 + 50, 'ABANDON', '#ef9a9a', 0x4e342e, () => {
-      cleanup()
-      s.scene.start('MainMenuScene')
-    })
-    yesBg.setDepth(52)
-    yesTxt.setDepth(53)
-    yesBg.width = 140
+    const yesBg = s.add.rectangle(W / 2 - 90, H / 2 + 50, 150, 44, 0x6B2A2A)
+      .setScrollFactor(0).setDepth(52).setInteractive({ useHandCursor: true })
+    const yesTxt = s.add.text(W / 2 - 90, H / 2 + 50, 'ABANDON', {
+      fontSize: '16px', fontFamily: FONT, color: '#FF9A9A',
+    }).setScrollFactor(0).setDepth(53).setOrigin(0.5)
     items.push(yesBg, yesTxt)
+    yesBg.on('pointerdown', () => { cleanup(); s.scene.start('MainMenuScene') })
 
-    const [noBg, noTxt] = this._makePauseBtn(W / 2 + 85, H / 2 + 50, 'STAY & FIGHT', '#a5d6a7', 0x1b5e20, () => {
-      cleanup()
-      this.showPauseMenu()
-    })
-    noBg.setDepth(52)
-    noTxt.setDepth(53)
-    noBg.width = 140
+    const noBg = s.add.rectangle(W / 2 + 90, H / 2 + 50, 150, 44, 0x2A6B3A)
+      .setScrollFactor(0).setDepth(52).setInteractive({ useHandCursor: true })
+    const noTxt = s.add.text(W / 2 + 90, H / 2 + 50, 'STAY & FIGHT', {
+      fontSize: '16px', fontFamily: FONT, color: '#7FFFD4',
+    }).setScrollFactor(0).setDepth(53).setOrigin(0.5)
     items.push(noBg, noTxt)
+    noBg.on('pointerdown', () => { cleanup(); this.showPauseMenu() })
   }
 
   // -----------------------------------------------------------
@@ -504,7 +485,6 @@ export default class HUD {
   // -----------------------------------------------------------
 
   _startCatChatter() {
-    // Every 12-20 seconds, a random placed cat says something
     const scheduleNext = () => {
       const delay = Phaser.Math.Between(12000, 20000)
       this.scene.time.delayedCall(delay, () => {
@@ -523,11 +503,11 @@ export default class HUD {
     const s = this.scene
     const bubble = s.add.text(x, y - 40, `💬 ${text}`, {
       fontSize: '12px',
-      fontFamily: 'monospace',
+      fontFamily: FONT_BODY,
       color: '#ffffff',
       stroke: '#000000',
       strokeThickness: 3,
-      backgroundColor: '#1a1a2ecc',
+      backgroundColor: '#1E2A3Acc',
       padding: { x: 6, y: 4 },
     }).setOrigin(0.5, 1).setDepth(18)
 
@@ -558,34 +538,34 @@ export default class HUD {
     this.scene.events.on('scrapsChanged', (scraps) => {
       this.scraps = scraps
       this._scrapsText.setText(`${scraps}`)
-      this._scrapsText.setColor(scraps < 50 ? '#ef5350' : '#ffd54f')
+      this._scrapsText.setColor(scraps < 50 ? '#FF6B6B' : '#FFD166')
     })
 
     this.scene.events.on('dirtChanged', (dirt) => {
       this.dirt = dirt
       const ratio = Math.max(0, dirt / DIRT.maxDirt)
-      this._dirtBar.width = 240 * ratio
+      this._dirtBar.width = 260 * ratio
       this._dirtBar.setFillStyle(
-        ratio > 0.6 ? 0x66bb6a :
-        ratio > 0.3 ? 0xff9800 : 0xef5350
+        ratio > 0.6 ? 0x56CF7F :
+        ratio > 0.3 ? 0xFFAA33 : 0xFF5555
       )
       this._dirtPct.setText(`${Math.round(ratio * 100)}%`)
 
       if (ratio < 0.3 && !this._dirtPulsing) {
         this._dirtPulsing = true
         this._dirtLabel.setText('😱 THE DIRT IS FADING!')
-        this._dirtLabel.setColor('#ef5350')
+        this._dirtLabel.setColor('#FF5555')
         this.scene.tweens.add({
           targets: this._dirtBar,
-          alpha: 0.3,
-          duration: 400,
+          alpha: 0.4,
+          duration: 350,
           yoyo: true,
           repeat: -1,
         })
       } else if (ratio >= 0.3 && this._dirtPulsing) {
         this._dirtPulsing = false
         this._dirtLabel.setText('🏠 DIRT METER')
-        this._dirtLabel.setColor('#a5d6a7')
+        this._dirtLabel.setColor('#7FFFD4')
         this.scene.tweens.killTweensOf(this._dirtBar)
         this._dirtBar.setAlpha(1)
       }
@@ -601,24 +581,24 @@ export default class HUD {
         : 'The invasion continues...'
 
       const announcement = this.scene.add.text(
-        GAME.width / 2, GAME.height / 2 - 40,
+        GAME.width / 2, GAME.height / 2 - 50,
         `WAVE ${wave}`,
         {
-          fontSize: '72px',
-          fontFamily: 'monospace',
-          color: '#ffffff',
+          fontSize: '80px',
+          fontFamily: FONT,
+          color: '#FFD166',
           stroke: '#000000',
           strokeThickness: 6,
         }
       ).setScrollFactor(0).setDepth(30).setOrigin(0.5).setAlpha(0)
 
       const sub = this.scene.add.text(
-        GAME.width / 2, GAME.height / 2 + 30,
+        GAME.width / 2, GAME.height / 2 + 40,
         subtitle,
         {
-          fontSize: '18px',
-          fontFamily: 'monospace',
-          color: '#b0bec5',
+          fontSize: '20px',
+          fontFamily: FONT_BODY,
+          color: '#B8C6DB',
           stroke: '#000000',
           strokeThickness: 3,
         }
@@ -630,10 +610,7 @@ export default class HUD {
         duration: 300,
         hold: 800,
         yoyo: true,
-        onComplete: () => {
-          announcement.destroy()
-          sub.destroy()
-        },
+        onComplete: () => { announcement.destroy(); sub.destroy() },
       })
     })
 
@@ -648,15 +625,15 @@ export default class HUD {
       const stars = cat.level > 0 ? ' ' + '★'.repeat(cat.level) : ''
 
       this._selectedCatText
-        .setText(`${cat.name}${stars}\nDmg:${cat.damage} Rng:${cat.range}`)
-        .setColor('#e0e0e0')
+        .setText(`${cat.name}${stars}\nDmg: ${cat.damage}  Rng: ${cat.range}`)
+        .setColor('#C8D6E5')
 
       if (upgCost) {
         this._upgradeTxt.setText(`⬆ ${upgCost}💰`)
-        this._upgradeTxt.setColor(this.scraps >= upgCost ? '#90caf9' : '#ef5350')
+        this._upgradeTxt.setColor(this.scraps >= upgCost ? '#90CAF9' : '#FF6B6B')
       } else {
         this._upgradeTxt.setText('MAX ★★★★★')
-        this._upgradeTxt.setColor('#ffd700')
+        this._upgradeTxt.setColor('#FFD166')
       }
       this._upgradeBtn.setVisible(true)
       this._upgradeTxt.setVisible(true)
@@ -666,7 +643,7 @@ export default class HUD {
       if (cat.canTrigger()) {
         const cooldownLeft = Math.ceil(cat._triggerCooldown / 1000)
         this._triggerTxt.setText(cooldownLeft > 0 ? `⚡ TRIGGER (${cooldownLeft}s)` : '⚡ TRIGGER!')
-        this._triggerTxt.setColor(cat._triggerCooldown <= 0 ? '#ffd700' : '#546e7a')
+        this._triggerTxt.setColor(cat._triggerCooldown <= 0 ? '#FFD166' : '#546e7a')
         this._triggerBtn.setVisible(true)
         this._triggerTxt.setVisible(true)
       } else {
@@ -676,7 +653,7 @@ export default class HUD {
     })
 
     this.scene.events.on('catDeselected', () => {
-      this._selectedCatText.setText('Click a cat\nto select').setColor('#78909c')
+      this._selectedCatText.setText('Select a cat\nto place').setColor('#7890A8')
       this._upgradeBtn.setVisible(false)
       this._upgradeTxt.setVisible(false)
       this._adoptBtn.setVisible(false)
@@ -687,7 +664,7 @@ export default class HUD {
 
     this.scene.events.on('awaitingTriggerTarget', () => {
       this._triggerTxt.setText('🎯 Click target on map...')
-      this._triggerTxt.setColor('#ff9800')
+      this._triggerTxt.setColor('#FFB347')
     })
   }
 }

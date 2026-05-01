@@ -27,7 +27,7 @@ export default class ResultScene extends Phaser.Scene {
     // Title
     this.add.text(W / 2, H / 2 - 60, win ? 'THE DIRT IS SAFE!' : 'SQUEAKY CLEAN...', {
       fontSize: '48px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: win ? '#a5d6a7' : '#ef9a9a',
       stroke: '#000000',
       strokeThickness: 4,
@@ -38,7 +38,7 @@ export default class ResultScene extends Phaser.Scene {
       ? 'You defended every wave. The vacuums are defeated.'
       : 'The vacuums cleaned everything. Not a speck of dirt remains.', {
       fontSize: '18px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: '#78909c',
       align: 'center',
     }).setOrigin(0.5)
@@ -46,7 +46,7 @@ export default class ResultScene extends Phaser.Scene {
     // Scraps remaining
     this.add.text(W / 2, H / 2 + 60, `Scraps remaining: ${this.scraps} 💰`, {
       fontSize: '20px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: '#ffd54f',
     }).setOrigin(0.5)
 
@@ -56,7 +56,7 @@ export default class ResultScene extends Phaser.Scene {
 
     const playTxt = this.add.text(W / 2, H / 2 + 140, '▶  PLAY AGAIN', {
       fontSize: '20px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: '#a5d6a7',
     }).setOrigin(0.5)
 
@@ -70,7 +70,7 @@ export default class ResultScene extends Phaser.Scene {
 
     const menuTxt = this.add.text(W / 2, H / 2 + 200, '← MAIN MENU', {
       fontSize: '16px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: '#78909c',
     }).setOrigin(0.5)
 
