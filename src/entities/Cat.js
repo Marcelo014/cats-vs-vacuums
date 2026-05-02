@@ -547,10 +547,21 @@ export default class Cat {
   }
 
   setSelected(selected) {
-    this.selected = selected
-    this.rangeCircle.setVisible(selected)
+  this.selected = selected
+  this.rangeCircle.setVisible(selected)
+
+  // setStrokeStyle only works on geometry, not sprites
+  if (this.body.setStrokeStyle) {
     this.body.setStrokeStyle(2, selected ? 0x00ff88 : 0xffffff, selected ? 1 : 0.4)
+  } else {
+    // For sprites — tint instead
+    if (selected) {
+      this.body.setTint(0x00ff88)
+    } else {
+      this.body.clearTint()
+    }
   }
+}
 
   destroy() {
     this.alive = false

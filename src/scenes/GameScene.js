@@ -140,44 +140,32 @@ _drawBackground() {
   const W = GAME.width
   const H = GAME.height
 
-  // Room floor
+  // Floor base
   this.add.rectangle(W / 2, H / 2, W, H, 0x1A2535).setDepth(-3)
 
-  // Subtle floor pattern — horizontal wood planks
-  const g = this.add.graphics()
-  g.setDepth(-2)
+  // Subtle floor planks
+  const g = this.add.graphics().setDepth(-2)
 
-  for (let y = 60; y < H - 80; y += 32) {
-    g.lineStyle(1, 0x243344, 0.6)
+  for (let y = 65; y < H - 80; y += 28) {
+    g.lineStyle(1, 0x2D4A6B, 0.4)
     g.beginPath()
     g.moveTo(0, y)
     g.lineTo(W, y)
     g.strokePath()
   }
 
-  // Vertical plank breaks every ~120px with slight offset
-  for (let x = 0; x < W; x += 120) {
-    const offset = Phaser.Math.Between(-8, 8)
-    g.lineStyle(1, 0x1E2D3F, 0.4)
+  for (let x = 0; x < W; x += 100) {
+    const offset = Phaser.Math.Between(-6, 6)
+    g.lineStyle(1, 0x243344, 0.3)
     g.beginPath()
-    g.moveTo(x, 60 + offset)
+    g.moveTo(x, 65 + offset)
     g.lineTo(x, H - 80 + offset)
     g.strokePath()
   }
 
-  // Subtle vignette — darker edges
-  const vignette = this.add.graphics().setDepth(-1)
-  vignette.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.4, 0.4, 0, 0)
-  vignette.fillRect(0, 60, W, 100)
-  vignette.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0, 0.4, 0.4)
-  vignette.fillRect(0, H - 180, W, 100)
-
-  // Decorative elements — cozy living room feel
-  // Baseboard along the bottom of the play area
-  this.add.rectangle(W / 2, H - 82, W, 6, 0x2D4A6B).setDepth(-1)
-
-  // Baseboard along the top of the play area
-  this.add.rectangle(W / 2, 62, W, 4, 0x2D4A6B).setDepth(-1)
+  // Baseboards
+  this.add.rectangle(W / 2, 63, W, 4, 0x2D4A6B).setDepth(-1)
+  this.add.rectangle(W / 2, H - 82, W, 4, 0x2D4A6B).setDepth(-1)
 }
 
   _pauseGame() {
