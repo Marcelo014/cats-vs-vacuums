@@ -1,8 +1,6 @@
 import * as Phaser from 'phaser'
 import { CATS, UPGRADE_COSTS, SETTINGS } from '../config/GameConfig.js'
 
-// Maps cat types to their loaded sprite keys
-// As you add more sprites, add them here
 const CAT_SPRITES = {
   kitten: 'cat_kitten',
 }
@@ -22,6 +20,7 @@ export default class Cat {
     this._tuxedoPulseActive = false
     this.triggerReady = false
     this._triggerCooldown = 0
+    this._lastSnapAngle = 0
 
     const config = CATS[type]
     this.name = config.name
@@ -34,6 +33,8 @@ export default class Cat {
     this.radius = config.radius
     this.placementRadius = this.radius
 
+    this.spriteKey = CAT_SPRITES[type] || null
+
     // Graphics
     this.container = scene.add.container(x, y)
 
@@ -41,10 +42,8 @@ export default class Cat {
     this.rangeCircle.setStrokeStyle(1, 0xffffff, 0.2)
     this.rangeCircle.setVisible(false)
 
-    // Use sprite if available, otherwise fall back to circle + emoji
-    const spriteKey = CAT_SPRITES[type]
-    if (spriteKey && scene.textures.exists(spriteKey)) {
-      this.body = scene.add.image(0, 0, spriteKey)
+    if (this.spriteKey && scene.textures.exists(this.spriteKey)) {
+      this.body = scene.add.image(0, 0, this.spriteKey)
       this.body.setDisplaySize(this.radius * 2, this.radius * 2)
     } else {
       this.body = scene.add.circle(0, 0, this.radius, this.color)
@@ -56,11 +55,10 @@ export default class Cat {
 
     this.levelText = scene.add.text(0, this.radius + 6, '', {
       fontSize: '10px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: '#ffffff',
     }).setOrigin(0.5, 0)
 
-    // Add to container — label is optional so check first
     const containerItems = [this.rangeCircle, this.body]
     if (this.label) containerItems.push(this.label)
     containerItems.push(this.levelText)
@@ -236,6 +234,18 @@ export default class Cat {
   }
 
   _attack(target) {
+    // Snap to face target when attacking
+    if (this.spriteKey) {
+      const dx = target.container.x - this.x
+      const dy = target.container.y - this.y
+      const angle = Math.atan2(dy, dx)
+      const snapAngle = Math.round((angle - Math.PI / 2) / (Math.PI / 4)) * (Math.PI / 4)
+      if (snapAngle !== this._lastSnapAngle) {
+        this._lastSnapAngle = snapAngle
+        this.body.setRotation(snapAngle)
+      }
+    }
+
     const bonusMultiplier = this._alleyCatBonus || 1
     const finalDamage = Math.round(this.damage * bonusMultiplier)
 
@@ -248,7 +258,6 @@ export default class Cat {
       this._spawnProjectile(target)
     }
 
-    // Attack animation — scale pulse on sprite or circle
     this.scene.tweens.add({
       targets: this.body,
       scaleX: 1.3,
@@ -531,7 +540,7 @@ export default class Cat {
   _showTriggerText(x, y, msg) {
     const txt = this.scene.add.text(x, y - 40, msg, {
       fontSize: '16px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: '#ffd700',
       stroke: '#000000',
       strokeThickness: 3,
@@ -547,21 +556,19 @@ export default class Cat {
   }
 
   setSelected(selected) {
-  this.selected = selected
-  this.rangeCircle.setVisible(selected)
+    this.selected = selected
+    this.rangeCircle.setVisible(selected)
 
-  // setStrokeStyle only works on geometry, not sprites
-  if (this.body.setStrokeStyle) {
-    this.body.setStrokeStyle(2, selected ? 0x00ff88 : 0xffffff, selected ? 1 : 0.4)
-  } else {
-    // For sprites — tint instead
-    if (selected) {
-      this.body.setTint(0x00ff88)
+    if (this.body.setStrokeStyle) {
+      this.body.setStrokeStyle(2, selected ? 0x00ff88 : 0xffffff, selected ? 1 : 0.4)
     } else {
-      this.body.clearTint()
+      if (selected) {
+        this.body.setTint(0x00ff88)
+      } else {
+        this.body.clearTint()
+      }
     }
   }
-}
 
   destroy() {
     this.alive = false

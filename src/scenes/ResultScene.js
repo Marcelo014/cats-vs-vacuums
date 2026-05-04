@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser'
 import { GAME } from '../config/GameConfig.js'
+import { roundRect } from '../ui/roundRect.js'
 
 export default class ResultScene extends Phaser.Scene {
   constructor() {
@@ -51,8 +52,7 @@ export default class ResultScene extends Phaser.Scene {
     }).setOrigin(0.5)
 
     // Play again button
-    const playBg = this.add.rectangle(W / 2, H / 2 + 140, 240, 48, 0x1b5e20)
-      .setInteractive({ useHandCursor: true })
+    const playBg = roundRect(this, W / 2, H / 2 + 140, 240, 48, 8, 0x1b5e20, true)
 
     const playTxt = this.add.text(W / 2, H / 2 + 140, '▶  PLAY AGAIN', {
       fontSize: '20px',
@@ -65,8 +65,7 @@ export default class ResultScene extends Phaser.Scene {
     playBg.on('pointerdown', () => this.scene.start('GameScene'))
 
     // Main menu button
-    const menuBg = this.add.rectangle(W / 2, H / 2 + 200, 240, 40, 0x1a1a2e)
-      .setInteractive({ useHandCursor: true })
+    const menuBg = roundRect(this, W / 2, H / 2 + 200, 240, 40, 8, 0x1a1a2e, true)
 
     const menuTxt = this.add.text(W / 2, H / 2 + 200, '← MAIN MENU', {
       fontSize: '16px',

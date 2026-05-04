@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser'
 import { GAME } from '../config/GameConfig.js'
+import { roundRect } from '../ui/roundRect.js'
 
 export default class MainMenuScene extends Phaser.Scene {
   constructor() {
@@ -95,8 +96,7 @@ export default class MainMenuScene extends Phaser.Scene {
   }
 
   _makeButton(x, y, label, textColor, bgColor, onClick) {
-    const bg = this.add.rectangle(x, y, 260, 44, bgColor)
-      .setInteractive({ useHandCursor: true })
+    const bg = roundRect(this, x, y, 260, 44, 8, bgColor, true)
 
     const txt = this.add.text(x, y, label, {
       fontSize: '18px',
@@ -116,7 +116,7 @@ export default class MainMenuScene extends Phaser.Scene {
     const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.8)
       .setInteractive()
 
-    const panel = this.add.rectangle(W / 2, H / 2, 620, 420, 0x0d0d1a)
+    const panel = roundRect(this, W / 2, H / 2, 620, 420, 16, 0x0d0d1a)
       .setStrokeStyle(2, 0x37474f)
 
     this.add.text(W / 2, H / 2 - 180, 'HOW TO PLAY', {

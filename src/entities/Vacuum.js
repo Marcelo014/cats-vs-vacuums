@@ -117,7 +117,7 @@ export default class Vacuum {
       `-${amount}`,
       {
         fontSize: '12px',
-        fontFamily: 'monospace',
+        fontFamily: 'Fredoka One',
         color: '#ff5252',
         stroke: '#000000',
         strokeThickness: 2,

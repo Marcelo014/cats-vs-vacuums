@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser'
 import { GAME, DIRT, SETTINGS } from '../config/GameConfig.js'
+import { roundRect } from './roundRect.js'
 
 const CAT_PANEL = [
   { type: 'kitten',     label: '🐱 Kitten',    cost: 50,  color: '#FFD166' },
@@ -53,7 +54,7 @@ const SCRAP_QUIPS = [
 ]
 
 const FONT = 'Fredoka One'
-const FONT_BODY = 'Fredoka'
+const FONT_BODY = 'Fredoka One'
 
 export default class HUD {
   constructor(scene, startingScraps) {
@@ -101,12 +102,15 @@ export default class HUD {
       color: '#7FFFD4',
     }).setScrollFactor(0).setDepth(11).setOrigin(0.5, 0)
 
-    // Bar bg
-    s.add.rectangle(dirtX, 40, 260, 16, 0x0D1B2A)
+    this._dirtX = dirtX
+
+    // Bar bg (rounded)
+    roundRect(s, dirtX, 40, 260, 16, 8, 0x0D1B2A)
       .setScrollFactor(0).setDepth(11)
 
-    this._dirtBar = s.add.rectangle(dirtX - 130, 40, 260, 16, 0x56CF7F)
-      .setScrollFactor(0).setDepth(12).setOrigin(0, 0.5)
+    this._dirtColor = 0x56CF7F
+    this._dirtGfx = s.add.graphics().setScrollFactor(0).setDepth(12)
+    this._drawDirtFill(1)
 
     this._dirtPct = s.add.text(dirtX, 40, '100%', {
       fontSize: '12px',
@@ -122,8 +126,8 @@ export default class HUD {
     }).setScrollFactor(0).setDepth(11).setOrigin(1, 0.5)
 
     // --- Pause button (top right, before wave text) ---
-    const pauseBg = s.add.rectangle(W - 220, 30, 44, 36, 0x2D4A6B)
-      .setScrollFactor(0).setDepth(11).setInteractive({ useHandCursor: true })
+    const pauseBg = roundRect(s, W - 220, 30, 44, 36, 8, 0x2D4A6B, true)
+      .setScrollFactor(0).setDepth(11)
 
     s.add.text(W - 220, 30, '⏸', { fontSize: '18px' })
       .setScrollFactor(0).setDepth(12).setOrigin(0.5)
@@ -163,8 +167,8 @@ export default class HUD {
     CAT_PANEL.forEach((cat, i) => {
       const bx = startX + i * (btnW + 4)
 
-      const btn = s.add.rectangle(bx, panelY, btnW, panelH - 8, 0x243344)
-        .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
+      const btn = roundRect(s, bx, panelY, btnW, panelH - 8, 6, 0x243344, true)
+        .setScrollFactor(0).setDepth(10)
 
       const txt = s.add.text(bx, panelY, `${cat.label}\n${cat.cost}💰`, {
         fontSize: '11px',
@@ -214,8 +218,8 @@ export default class HUD {
       const bx = speedX - 28 + i * 30
       const by = panelY + 14
 
-      const bg = s.add.rectangle(bx, by, 26, 22, spd.value === 1 ? 0x2A6B3A : 0x243344)
-        .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
+      const bg = roundRect(s, bx, by, 26, 22, 4, spd.value === 1 ? 0x2A6B3A : 0x243344, true)
+        .setScrollFactor(0).setDepth(10)
 
       const txt = s.add.text(bx, by, spd.label, {
         fontSize: '11px',
@@ -235,8 +239,8 @@ export default class HUD {
     })
 
     // --- Next Wave button (inside panel, far right) ---
-    this._btnBg = s.add.rectangle(W - 70, panelY, 110, panelH - 12, 0x2A6B3A)
-      .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
+    this._btnBg = roundRect(s, W - 70, panelY, 110, panelH - 12, 8, 0x2A6B3A, true)
+      .setScrollFactor(0).setDepth(10)
 
     this._btnText = s.add.text(W - 70, panelY, '▶ NEXT\nWAVE', {
       fontSize: '14px',
@@ -269,7 +273,7 @@ export default class HUD {
     const panelH = 80
 
     // Background
-    s.add.rectangle(80, H - panelH / 2, 150, panelH, 0x243344)
+    roundRect(s, 80, H - panelH / 2, 150, panelH, 10, 0x243344)
       .setScrollFactor(0).setDepth(9)
 
     this._selectedCatText = s.add.text(80, H - panelH + 10, 'Select a cat\nto place', {
@@ -280,9 +284,8 @@ export default class HUD {
     }).setScrollFactor(0).setDepth(11).setOrigin(0.5, 0)
 
     // Upgrade button
-    this._upgradeBtn = s.add.rectangle(48, panelY + 8, 64, 20, 0x2D4A9B)
-      .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
-      .setVisible(false)
+    this._upgradeBtn = roundRect(s, 48, panelY + 8, 64, 20, 5, 0x2D4A9B, true)
+      .setScrollFactor(0).setDepth(10).setVisible(false)
 
     this._upgradeTxt = s.add.text(48, panelY + 8, '', {
       fontSize: '10px',
@@ -293,9 +296,8 @@ export default class HUD {
     this._upgradeBtn.on('pointerdown', () => s.events.emit('upgradeSelectedCat'))
 
     // Adopt button
-    this._adoptBtn = s.add.rectangle(116, panelY + 8, 64, 20, 0x6B2A2A)
-      .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
-      .setVisible(false)
+    this._adoptBtn = roundRect(s, 116, panelY + 8, 64, 20, 5, 0x6B2A2A, true)
+      .setScrollFactor(0).setDepth(10).setVisible(false)
 
     this._adoptTxt = s.add.text(116, panelY + 8, '🏠 Adopt', {
       fontSize: '10px',
@@ -306,9 +308,8 @@ export default class HUD {
     this._adoptBtn.on('pointerdown', () => s.events.emit('adoptOutSelectedCat'))
 
     // Trigger button
-    this._triggerBtn = s.add.rectangle(80, panelY + 30, 140, 20, 0x6B2A9B)
-      .setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true })
-      .setVisible(false)
+    this._triggerBtn = roundRect(s, 80, panelY + 30, 140, 20, 5, 0x6B2A9B, true)
+      .setScrollFactor(0).setDepth(10).setVisible(false)
 
     this._triggerTxt = s.add.text(80, panelY + 30, '', {
       fontSize: '10px',
@@ -334,7 +335,7 @@ export default class HUD {
       .setScrollFactor(0).setDepth(40)
     this._pauseMenuItems.push(overlay)
 
-    const panel = s.add.rectangle(W / 2, H / 2, 400, 500, 0x1E2A3A)
+    const panel = roundRect(s, W / 2, H / 2, 400, 500, 16, 0x1E2A3A)
       .setScrollFactor(0).setDepth(41)
     this._pauseMenuItems.push(panel)
 
@@ -418,8 +419,8 @@ export default class HUD {
 
   _makePauseBtn(x, y, label, textColor, bgColor, onClick) {
     const s = this.scene
-    const bg = s.add.rectangle(x, y, 320, 44, bgColor)
-      .setScrollFactor(0).setDepth(42).setInteractive({ useHandCursor: true })
+    const bg = roundRect(s, x, y, 320, 44, 8, bgColor, true)
+      .setScrollFactor(0).setDepth(42)
 
     const txt = s.add.text(x, y, label, {
       fontSize: '16px',
@@ -444,7 +445,7 @@ export default class HUD {
       .setScrollFactor(0).setDepth(50)
     items.push(overlay)
 
-    const panel = s.add.rectangle(W / 2, H / 2, 400, 260, 0x1E2A3A)
+    const panel = roundRect(s, W / 2, H / 2, 400, 260, 16, 0x1E2A3A)
       .setScrollFactor(0).setDepth(51)
     items.push(panel)
 
@@ -463,16 +464,16 @@ export default class HUD {
 
     const cleanup = () => items.forEach(i => i.destroy())
 
-    const yesBg = s.add.rectangle(W / 2 - 90, H / 2 + 50, 150, 44, 0x6B2A2A)
-      .setScrollFactor(0).setDepth(52).setInteractive({ useHandCursor: true })
+    const yesBg = roundRect(s, W / 2 - 90, H / 2 + 50, 150, 44, 8, 0x6B2A2A, true)
+      .setScrollFactor(0).setDepth(52)
     const yesTxt = s.add.text(W / 2 - 90, H / 2 + 50, 'ABANDON', {
       fontSize: '16px', fontFamily: FONT, color: '#FF9A9A',
     }).setScrollFactor(0).setDepth(53).setOrigin(0.5)
     items.push(yesBg, yesTxt)
     yesBg.on('pointerdown', () => { cleanup(); s.scene.start('MainMenuScene') })
 
-    const noBg = s.add.rectangle(W / 2 + 90, H / 2 + 50, 150, 44, 0x2A6B3A)
-      .setScrollFactor(0).setDepth(52).setInteractive({ useHandCursor: true })
+    const noBg = roundRect(s, W / 2 + 90, H / 2 + 50, 150, 44, 8, 0x2A6B3A, true)
+      .setScrollFactor(0).setDepth(52)
     const noTxt = s.add.text(W / 2 + 90, H / 2 + 50, 'STAY & FIGHT', {
       fontSize: '16px', fontFamily: FONT, color: '#7FFFD4',
     }).setScrollFactor(0).setDepth(53).setOrigin(0.5)
@@ -544,11 +545,8 @@ export default class HUD {
     this.scene.events.on('dirtChanged', (dirt) => {
       this.dirt = dirt
       const ratio = Math.max(0, dirt / DIRT.maxDirt)
-      this._dirtBar.width = 260 * ratio
-      this._dirtBar.setFillStyle(
-        ratio > 0.6 ? 0x56CF7F :
-        ratio > 0.3 ? 0xFFAA33 : 0xFF5555
-      )
+      this._dirtColor = ratio > 0.6 ? 0x56CF7F : ratio > 0.3 ? 0xFFAA33 : 0xFF5555
+      this._drawDirtFill(ratio)
       this._dirtPct.setText(`${Math.round(ratio * 100)}%`)
 
       if (ratio < 0.3 && !this._dirtPulsing) {
@@ -556,7 +554,7 @@ export default class HUD {
         this._dirtLabel.setText('😱 THE DIRT IS FADING!')
         this._dirtLabel.setColor('#FF5555')
         this.scene.tweens.add({
-          targets: this._dirtBar,
+          targets: this._dirtGfx,
           alpha: 0.4,
           duration: 350,
           yoyo: true,
@@ -566,8 +564,8 @@ export default class HUD {
         this._dirtPulsing = false
         this._dirtLabel.setText('🏠 DIRT METER')
         this._dirtLabel.setColor('#7FFFD4')
-        this.scene.tweens.killTweensOf(this._dirtBar)
-        this._dirtBar.setAlpha(1)
+        this.scene.tweens.killTweensOf(this._dirtGfx)
+        this._dirtGfx.setAlpha(1)
       }
     })
 
@@ -666,5 +664,15 @@ export default class HUD {
       this._triggerTxt.setText('🎯 Click target on map...')
       this._triggerTxt.setColor('#FFB347')
     })
+  }
+
+  _drawDirtFill(ratio) {
+    const w = Math.max(0, 260 * ratio)
+    const left = this._dirtX - 130
+    this._dirtGfx.clear()
+    if (w > 1) {
+      this._dirtGfx.fillStyle(this._dirtColor)
+      this._dirtGfx.fillRoundedRect(left, 32, w, 16, Math.min(8, w / 2))
+    }
   }
 }

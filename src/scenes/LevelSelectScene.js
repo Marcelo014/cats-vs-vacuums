@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser'
 import { GAME } from '../config/GameConfig.js'
+import { roundRect } from '../ui/roundRect.js'
 
 const LEVELS = [
   {
@@ -61,7 +62,7 @@ export default class LevelSelectScene extends Phaser.Scene {
     // Title
     this.add.text(W / 2, 60, 'SELECT LEVEL', {
       fontSize: '36px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: '#ffd54f',
       stroke: '#000000',
       strokeThickness: 4,
@@ -69,7 +70,7 @@ export default class LevelSelectScene extends Phaser.Scene {
 
     this.add.text(W / 2, 100, 'The vacuums breach the cat door and push deeper into the home.', {
       fontSize: '14px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: '#546e7a',
     }).setOrigin(0.5)
 
@@ -85,11 +86,10 @@ export default class LevelSelectScene extends Phaser.Scene {
       const cy = H / 2 + 20
 
       // Card background
-      const card = this.add.rectangle(cx, cy, cardW, cardH, level.available ? 0x1a1a2e : 0x0d0d16)
+      const card = roundRect(this, cx, cy, cardW, cardH, 12, level.available ? 0x1a1a2e : 0x0d0d16, level.available)
         .setStrokeStyle(2, level.available ? 0x37474f : 0x1a1a2e)
 
       if (level.available) {
-        card.setInteractive({ useHandCursor: true })
         card.on('pointerover', () => {
           card.setFillStyle(0x2a2a3e)
           card.setStrokeStyle(2, 0x66bb6a)
@@ -106,7 +106,7 @@ export default class LevelSelectScene extends Phaser.Scene {
       // Level number
       this.add.text(cx, cy - 80, `${level.number}`, {
         fontSize: '48px',
-        fontFamily: 'monospace',
+        fontFamily: 'Fredoka One',
         color: level.available ? '#ffffff' : '#263238',
         stroke: '#000000',
         strokeThickness: 3,
@@ -121,38 +121,37 @@ export default class LevelSelectScene extends Phaser.Scene {
       // Level name
       this.add.text(cx, cy + 30, level.name, {
         fontSize: '16px',
-        fontFamily: 'monospace',
+        fontFamily: 'Fredoka One',
         color: level.available ? '#b0bec5' : '#263238',
       }).setOrigin(0.5)
 
       // Description
       this.add.text(cx, cy + 65, level.description, {
         fontSize: '11px',
-        fontFamily: 'monospace',
+        fontFamily: 'Fredoka One',
         color: level.available ? '#546e7a' : '#1a2a2e',
         align: 'center',
       }).setOrigin(0.5)
 
       // Coming soon badge
       if (!level.available) {
-        const badge = this.add.rectangle(cx, cy - 80, 120, 28, 0x1a1a2e)
+        roundRect(this, cx, cy - 80, 120, 28, 6, 0x1a1a2e)
           .setStrokeStyle(1, 0x263238)
 
         this.add.text(cx, cy - 80, 'COMING SOON', {
           fontSize: '10px',
-          fontFamily: 'monospace',
+          fontFamily: 'Fredoka One',
           color: '#37474f',
         }).setOrigin(0.5)
       }
     })
 
     // Back button
-    const backBg = this.add.rectangle(80, H - 40, 120, 36, 0x1a1a2e)
-      .setInteractive({ useHandCursor: true })
+    const backBg = roundRect(this, 80, H - 40, 120, 36, 8, 0x1a1a2e, true)
 
     const backTxt = this.add.text(80, H - 40, '← BACK', {
       fontSize: '14px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: '#78909c',
     }).setOrigin(0.5)
 

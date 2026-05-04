@@ -264,7 +264,7 @@ _drawBackground() {
     const label = this._hud.getScrapQuip(amount)
     const txt = this.add.text(x, y - 20, label, {
       fontSize: '13px',
-      fontFamily: 'monospace',
+      fontFamily: 'Fredoka One',
       color: '#ffd54f',
       stroke: '#000000',
       strokeThickness: 3,
