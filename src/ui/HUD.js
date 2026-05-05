@@ -56,6 +56,15 @@ const SCRAP_QUIPS = [
 const FONT = 'Fredoka One'
 const FONT_BODY = 'Fredoka One'
 
+const W = GAME.width
+const H = GAME.height
+const SCALE = H / 720
+const TOP_H = Math.round(60 * SCALE)
+const BOT_H = Math.round(80 * SCALE)
+const DIRT_W = Math.round(260 * SCALE)
+const DIRT_H = Math.round(16 * SCALE)
+const DIRT_Y = Math.round(40 * SCALE)
+
 export default class HUD {
   constructor(scene, startingScraps) {
     this.scene = scene
@@ -77,18 +86,18 @@ export default class HUD {
 
   _buildTopBar() {
     const s = this.scene
-    const W = GAME.width
+    const barMid = TOP_H / 2
+    const MARGIN = Math.round(20 * SCALE)
 
-    // Top bar background
-    s.add.rectangle(W / 2, 30, W, 60, 0x1E2A3A, 1)
+    s.add.rectangle(W / 2, barMid, W, TOP_H, 0x1E2A3A, 1)
       .setScrollFactor(0).setDepth(10)
 
     // --- Scraps (left) ---
-    s.add.text(20, 30, '💰', { fontSize: '22px' })
+    s.add.text(MARGIN, barMid, '💰', { fontSize: `${Math.round(22 * SCALE)}px` })
       .setScrollFactor(0).setDepth(11).setOrigin(0, 0.5)
 
-    this._scrapsText = s.add.text(48, 30, `${this.scraps}`, {
-      fontSize: '22px',
+    this._scrapsText = s.add.text(MARGIN + Math.round(28 * SCALE), barMid, `${this.scraps}`, {
+      fontSize: `${Math.round(22 * SCALE)}px`,
       fontFamily: FONT,
       color: '#FFD166',
     }).setScrollFactor(0).setDepth(11).setOrigin(0, 0.5)
@@ -96,40 +105,42 @@ export default class HUD {
     // --- Dirt meter (center) ---
     const dirtX = W / 2
 
-    this._dirtLabel = s.add.text(dirtX, 10, '🏠 DIRT METER', {
-      fontSize: '13px',
+    this._dirtLabel = s.add.text(dirtX, Math.round(10 * SCALE), '🏠 DIRT METER', {
+      fontSize: `${Math.round(13 * SCALE)}px`,
       fontFamily: FONT_BODY,
       color: '#7FFFD4',
     }).setScrollFactor(0).setDepth(11).setOrigin(0.5, 0)
 
     this._dirtX = dirtX
 
-    // Bar bg (rounded)
-    roundRect(s, dirtX, 40, 260, 16, 8, 0x0D1B2A)
+    roundRect(s, dirtX, DIRT_Y, DIRT_W, DIRT_H, 8, 0x0D1B2A)
       .setScrollFactor(0).setDepth(11)
 
     this._dirtColor = 0x56CF7F
     this._dirtGfx = s.add.graphics().setScrollFactor(0).setDepth(12)
     this._drawDirtFill(1)
 
-    this._dirtPct = s.add.text(dirtX, 40, '100%', {
-      fontSize: '12px',
+    this._dirtPct = s.add.text(dirtX, DIRT_Y, '100%', {
+      fontSize: `${Math.round(12 * SCALE)}px`,
       fontFamily: FONT_BODY,
       color: '#ffffff',
     }).setScrollFactor(0).setDepth(13).setOrigin(0.5)
 
     // --- Wave counter (right) ---
-    this._waveText = s.add.text(W - 20, 30, 'Wave 0 / 0', {
-      fontSize: '22px',
+    this._waveText = s.add.text(W - MARGIN, barMid, 'Wave 0 / 0', {
+      fontSize: `${Math.round(22 * SCALE)}px`,
       fontFamily: FONT,
       color: '#B8C6DB',
     }).setScrollFactor(0).setDepth(11).setOrigin(1, 0.5)
 
-    // --- Pause button (top right, before wave text) ---
-    const pauseBg = roundRect(s, W - 220, 30, 44, 36, 8, 0x2D4A6B, true)
+    // --- Pause button ---
+    const pauseW = Math.round(44 * SCALE)
+    const pauseH = Math.round(36 * SCALE)
+    const pauseX = W - Math.round(220 * SCALE)
+    const pauseBg = roundRect(s, pauseX, barMid, pauseW, pauseH, 8, 0x2D4A6B, true)
       .setScrollFactor(0).setDepth(11)
 
-    s.add.text(W - 220, 30, '⏸', { fontSize: '18px' })
+    s.add.text(pauseX, barMid, '⏸', { fontSize: `${Math.round(18 * SCALE)}px` })
       .setScrollFactor(0).setDepth(12).setOrigin(0.5)
 
     pauseBg.on('pointerover', () => pauseBg.setFillStyle(0x3D6A9B))
@@ -143,35 +154,32 @@ export default class HUD {
 
   _buildBottomPanel() {
     const s = this.scene
-    const W = GAME.width
-    const H = GAME.height
-    const panelH = 80
+    const panelH = BOT_H
     const panelY = H - panelH / 2
 
-    // Panel background
     s.add.rectangle(W / 2, panelY, W, panelH, 0x1E2A3A)
       .setScrollFactor(0).setDepth(9)
 
-    // Divider line at top of panel
     s.add.rectangle(W / 2, H - panelH, W, 2, 0x2D4A6B)
       .setScrollFactor(0).setDepth(9)
 
-    // Cat buttons — 10 cats, evenly spaced across most of the width
-    // Reserve left 160px for selected cat panel, right 180px for speed + next wave
-    const usableW = W - 160 - 200
-    const btnW = Math.floor(usableW / 10) - 4
-    const startX = 160 + (usableW - (btnW + 4) * 10) / 2 + btnW / 2 + 10
+    const leftReserve = Math.round(160 * SCALE)
+    const rightReserve = Math.round(200 * SCALE)
+    const GAP = Math.round(4 * SCALE)
+    const usableW = W - leftReserve - rightReserve
+    const btnW = Math.floor(usableW / 10) - GAP
+    const startX = leftReserve + (usableW - (btnW + GAP) * 10) / 2 + btnW / 2
 
     this._catBtns = []
 
     CAT_PANEL.forEach((cat, i) => {
-      const bx = startX + i * (btnW + 4)
+      const bx = startX + i * (btnW + GAP)
 
-      const btn = roundRect(s, bx, panelY, btnW, panelH - 8, 6, 0x243344, true)
+      const btn = roundRect(s, bx, panelY, btnW, panelH - Math.round(8 * SCALE), 6, 0x243344, true)
         .setScrollFactor(0).setDepth(10)
 
-      const txt = s.add.text(bx, panelY, `${cat.label}\n${cat.cost}💰`, {
-        fontSize: '11px',
+      s.add.text(bx, panelY, `${cat.label}\n${cat.cost}💰`, {
+        fontSize: `${Math.round(11 * SCALE)}px`,
         fontFamily: FONT_BODY,
         color: cat.color,
         align: 'center',
@@ -194,35 +202,34 @@ export default class HUD {
       this._catBtns.push(btn)
     })
 
-    // Select kitten by default
     this._selectedBtn = this._catBtns[0]
     this._catBtns[0].setFillStyle(0x2A6B3A)
 
-    // --- Speed control (inside panel, right side) ---
-    const speedX = W - 185
-    s.add.text(speedX, H - panelH + 10, '⚡ SPEED', {
-      fontSize: '11px',
+    // --- Speed control ---
+    const speedX = W - Math.round(185 * SCALE)
+    s.add.text(speedX, H - panelH + Math.round(10 * SCALE), '⚡ SPEED', {
+      fontSize: `${Math.round(11 * SCALE)}px`,
       fontFamily: FONT_BODY,
       color: '#7FFFD4',
     }).setScrollFactor(0).setDepth(10).setOrigin(0.5, 0)
 
     const speeds = [
-  { label: 'x1', value: 1 },
-  { label: 'x3', value: 3 },
-  { label: 'x5', value: 5 },
-]
+      { label: 'x1', value: 1 },
+      { label: 'x3', value: 3 },
+      { label: 'x5', value: 5 },
+    ]
 
     this._speedBtns = []
 
     speeds.forEach((spd, i) => {
-      const bx = speedX - 28 + i * 30
-      const by = panelY + 14
+      const bx = speedX - Math.round(28 * SCALE) + i * Math.round(30 * SCALE)
+      const by = panelY + Math.round(14 * SCALE)
 
-      const bg = roundRect(s, bx, by, 26, 22, 4, spd.value === 1 ? 0x2A6B3A : 0x243344, true)
+      const bg = roundRect(s, bx, by, Math.round(26 * SCALE), Math.round(22 * SCALE), 4, spd.value === 1 ? 0x2A6B3A : 0x243344, true)
         .setScrollFactor(0).setDepth(10)
 
       const txt = s.add.text(bx, by, spd.label, {
-        fontSize: '11px',
+        fontSize: `${Math.round(11 * SCALE)}px`,
         fontFamily: FONT_BODY,
         color: spd.value === 1 ? '#7FFFD4' : '#546e7a',
       }).setScrollFactor(0).setDepth(11).setOrigin(0.5)
@@ -238,12 +245,13 @@ export default class HUD {
       this._speedBtns.push({ bg, txt })
     })
 
-    // --- Next Wave button (inside panel, far right) ---
-    this._btnBg = roundRect(s, W - 70, panelY, 110, panelH - 12, 8, 0x2A6B3A, true)
+    // --- Next Wave button ---
+    const nextX = W - Math.round(70 * SCALE)
+    this._btnBg = roundRect(s, nextX, panelY, Math.round(110 * SCALE), panelH - Math.round(12 * SCALE), 8, 0x2A6B3A, true)
       .setScrollFactor(0).setDepth(10)
 
-    this._btnText = s.add.text(W - 70, panelY, '▶ NEXT\nWAVE', {
-      fontSize: '14px',
+    this._btnText = s.add.text(nextX, panelY, '▶ NEXT\nWAVE', {
+      fontSize: `${Math.round(14 * SCALE)}px`,
       fontFamily: FONT,
       color: '#7FFFD4',
       align: 'center',
@@ -268,51 +276,49 @@ export default class HUD {
 
   _buildSelectedCatPanel() {
     const s = this.scene
-    const H = GAME.height
-    const panelY = H - 40
-    const panelH = 80
+    const panelH = BOT_H
+    const panelCenterX = Math.round(80 * SCALE)
+    const panelY = H - Math.round(40 * SCALE)
 
-    // Background
-    roundRect(s, 80, H - panelH / 2, 150, panelH, 10, 0x243344)
+    roundRect(s, panelCenterX, H - panelH / 2, Math.round(150 * SCALE), panelH, 10, 0x243344)
       .setScrollFactor(0).setDepth(9)
 
-    this._selectedCatText = s.add.text(80, H - panelH + 10, 'Select a cat\nto place', {
-      fontSize: '12px',
+    this._selectedCatText = s.add.text(panelCenterX, H - panelH + Math.round(10 * SCALE), 'Select a cat\nto place', {
+      fontSize: `${Math.round(12 * SCALE)}px`,
       fontFamily: FONT_BODY,
       color: '#7890A8',
       align: 'center',
     }).setScrollFactor(0).setDepth(11).setOrigin(0.5, 0)
 
-    // Upgrade button
-    this._upgradeBtn = roundRect(s, 48, panelY + 8, 64, 20, 5, 0x2D4A9B, true)
+    const btnH = Math.round(20 * SCALE)
+
+    this._upgradeBtn = roundRect(s, Math.round(48 * SCALE), panelY + Math.round(8 * SCALE), Math.round(64 * SCALE), btnH, 5, 0x2D4A9B, true)
       .setScrollFactor(0).setDepth(10).setVisible(false)
 
-    this._upgradeTxt = s.add.text(48, panelY + 8, '', {
-      fontSize: '10px',
+    this._upgradeTxt = s.add.text(Math.round(48 * SCALE), panelY + Math.round(8 * SCALE), '', {
+      fontSize: `${Math.round(10 * SCALE)}px`,
       fontFamily: FONT_BODY,
       color: '#90CAF9',
     }).setScrollFactor(0).setDepth(11).setOrigin(0.5).setVisible(false)
 
     this._upgradeBtn.on('pointerdown', () => s.events.emit('upgradeSelectedCat'))
 
-    // Adopt button
-    this._adoptBtn = roundRect(s, 116, panelY + 8, 64, 20, 5, 0x6B2A2A, true)
+    this._adoptBtn = roundRect(s, Math.round(116 * SCALE), panelY + Math.round(8 * SCALE), Math.round(64 * SCALE), btnH, 5, 0x6B2A2A, true)
       .setScrollFactor(0).setDepth(10).setVisible(false)
 
-    this._adoptTxt = s.add.text(116, panelY + 8, '🏠 Adopt', {
-      fontSize: '10px',
+    this._adoptTxt = s.add.text(Math.round(116 * SCALE), panelY + Math.round(8 * SCALE), '🏠 Adopt', {
+      fontSize: `${Math.round(10 * SCALE)}px`,
       fontFamily: FONT_BODY,
       color: '#FF9A9A',
     }).setScrollFactor(0).setDepth(11).setOrigin(0.5).setVisible(false)
 
     this._adoptBtn.on('pointerdown', () => s.events.emit('adoptOutSelectedCat'))
 
-    // Trigger button
-    this._triggerBtn = roundRect(s, 80, panelY + 30, 140, 20, 5, 0x6B2A9B, true)
+    this._triggerBtn = roundRect(s, Math.round(80 * SCALE), panelY + Math.round(30 * SCALE), Math.round(140 * SCALE), btnH, 5, 0x6B2A9B, true)
       .setScrollFactor(0).setDepth(10).setVisible(false)
 
-    this._triggerTxt = s.add.text(80, panelY + 30, '', {
-      fontSize: '10px',
+    this._triggerTxt = s.add.text(Math.round(80 * SCALE), panelY + Math.round(30 * SCALE), '', {
+      fontSize: `${Math.round(10 * SCALE)}px`,
       fontFamily: FONT_BODY,
       color: '#D9A7FF',
     }).setScrollFactor(0).setDepth(11).setOrigin(0.5).setVisible(false)
@@ -326,8 +332,6 @@ export default class HUD {
 
   showPauseMenu() {
     const s = this.scene
-    const W = GAME.width
-    const H = GAME.height
 
     this._pauseMenuItems = []
 
@@ -335,45 +339,43 @@ export default class HUD {
       .setScrollFactor(0).setDepth(40)
     this._pauseMenuItems.push(overlay)
 
-    const panel = roundRect(s, W / 2, H / 2, 400, 500, 16, 0x1E2A3A)
+    const panel = roundRect(s, W / 2, H / 2, Math.round(400 * SCALE), Math.round(500 * SCALE), 16, 0x1E2A3A)
       .setScrollFactor(0).setDepth(41)
     this._pauseMenuItems.push(panel)
 
-    // Cat deco
-    const catDeco = s.add.text(W / 2, H / 2 - 240, '😾', {
-      fontSize: '40px',
+    const catDeco = s.add.text(W / 2, H / 2 - Math.round(240 * SCALE), '😾', {
+      fontSize: `${Math.round(40 * SCALE)}px`,
     }).setScrollFactor(0).setDepth(42).setOrigin(0.5)
     this._pauseMenuItems.push(catDeco)
 
     s.tweens.add({
       targets: catDeco,
-      y: H / 2 - 252,
+      y: H / 2 - Math.round(252 * SCALE),
       duration: 700,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut',
     })
 
-    this._pauseMenuItems.push(s.add.text(W / 2, H / 2 - 200, 'PAUSED', {
-      fontSize: '36px',
+    this._pauseMenuItems.push(s.add.text(W / 2, H / 2 - Math.round(200 * SCALE), 'PAUSED', {
+      fontSize: `${Math.round(36 * SCALE)}px`,
       fontFamily: FONT,
       color: '#FFD166',
     }).setScrollFactor(0).setDepth(42).setOrigin(0.5))
 
-    this._pauseMenuItems.push(s.add.text(W / 2, H / 2 - 165, 'The dirt awaits your return.', {
-      fontSize: '14px',
+    this._pauseMenuItems.push(s.add.text(W / 2, H / 2 - Math.round(165 * SCALE), 'The dirt awaits your return.', {
+      fontSize: `${Math.round(14 * SCALE)}px`,
       fontFamily: FONT_BODY,
       color: '#7890A8',
     }).setScrollFactor(0).setDepth(42).setOrigin(0.5))
 
-    // Buttons
     this._pauseMenuItems.push(...this._makePauseBtn(
-      W / 2, H / 2 - 110, '▶  RESUME', '#7FFFD4', 0x2A6B3A,
+      W / 2, H / 2 - Math.round(110 * SCALE), '▶  RESUME', '#7FFFD4', 0x2A6B3A,
       () => s.events.emit('resumeGame')
     ))
 
     this._pauseMenuItems.push(...this._makePauseBtn(
-      W / 2, H / 2 - 55, '↺  RESTART', '#90CAF9', 0x2D4A9B,
+      W / 2, H / 2 - Math.round(55 * SCALE), '↺  RESTART', '#90CAF9', 0x2D4A9B,
       () => { this.hidePauseMenu(); s.scene.restart() }
     ))
 
@@ -386,25 +388,25 @@ export default class HUD {
 
     const musicLabel = () => `🎵 Music: ${SETTINGS.musicOn ? 'ON ✓' : 'OFF ✗'}`
     const [mBg, mTxt] = this._makePauseBtn(
-      W / 2, H / 2 + 55, musicLabel(), '#C8D6E5', 0x243344,
+      W / 2, H / 2 + Math.round(55 * SCALE), musicLabel(), '#C8D6E5', 0x243344,
       () => { SETTINGS.musicOn = !SETTINGS.musicOn; mTxt.setText(musicLabel()) }
     )
     this._pauseMenuItems.push(mBg, mTxt)
 
     const autoLabel = () => `⏭️  Auto Wave: ${SETTINGS.autoPlay ? 'ON ✓' : 'OFF ✗'}`
     const [aBg, aTxt] = this._makePauseBtn(
-      W / 2, H / 2 + 110, autoLabel(), '#C8D6E5', 0x243344,
+      W / 2, H / 2 + Math.round(110 * SCALE), autoLabel(), '#C8D6E5', 0x243344,
       () => { SETTINGS.autoPlay = !SETTINGS.autoPlay; aTxt.setText(autoLabel()) }
     )
     this._pauseMenuItems.push(aBg, aTxt)
 
     this._pauseMenuItems.push(...this._makePauseBtn(
-      W / 2, H / 2 + 175, '⬅  MAIN MENU', '#FF9A9A', 0x6B2A2A,
+      W / 2, H / 2 + Math.round(175 * SCALE), '⬅  MAIN MENU', '#FF9A9A', 0x6B2A2A,
       () => { this.hidePauseMenu(); this._showQuitConfirm() }
     ))
 
-    this._pauseMenuItems.push(s.add.text(W / 2, H / 2 + 225, 'Press ESC to resume', {
-      fontSize: '12px',
+    this._pauseMenuItems.push(s.add.text(W / 2, H / 2 + Math.round(225 * SCALE), 'Press ESC to resume', {
+      fontSize: `${Math.round(12 * SCALE)}px`,
       fontFamily: FONT_BODY,
       color: '#37474f',
     }).setScrollFactor(0).setDepth(42).setOrigin(0.5))
@@ -419,11 +421,11 @@ export default class HUD {
 
   _makePauseBtn(x, y, label, textColor, bgColor, onClick) {
     const s = this.scene
-    const bg = roundRect(s, x, y, 320, 44, 8, bgColor, true)
+    const bg = roundRect(s, x, y, Math.round(320 * SCALE), Math.round(44 * SCALE), 8, bgColor, true)
       .setScrollFactor(0).setDepth(42)
 
     const txt = s.add.text(x, y, label, {
-      fontSize: '16px',
+      fontSize: `${Math.round(16 * SCALE)}px`,
       fontFamily: FONT,
       color: textColor,
     }).setScrollFactor(0).setDepth(43).setOrigin(0.5)
@@ -437,26 +439,24 @@ export default class HUD {
 
   _showQuitConfirm() {
     const s = this.scene
-    const W = GAME.width
-    const H = GAME.height
     const items = []
 
     const overlay = s.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.85)
       .setScrollFactor(0).setDepth(50)
     items.push(overlay)
 
-    const panel = roundRect(s, W / 2, H / 2, 400, 260, 16, 0x1E2A3A)
+    const panel = roundRect(s, W / 2, H / 2, Math.round(400 * SCALE), Math.round(260 * SCALE), 16, 0x1E2A3A)
       .setScrollFactor(0).setDepth(51)
     items.push(panel)
 
-    items.push(s.add.text(W / 2, H / 2 - 90, '😿  ABANDON THE DIRT?', {
-      fontSize: '22px',
+    items.push(s.add.text(W / 2, H / 2 - Math.round(90 * SCALE), '😿  ABANDON THE DIRT?', {
+      fontSize: `${Math.round(22 * SCALE)}px`,
       fontFamily: FONT,
       color: '#FF9A9A',
     }).setScrollFactor(0).setDepth(52).setOrigin(0.5))
 
-    items.push(s.add.text(W / 2, H / 2 - 45, 'The vacuums will win.\nThe dirt will be lost forever.', {
-      fontSize: '14px',
+    items.push(s.add.text(W / 2, H / 2 - Math.round(45 * SCALE), 'The vacuums will win.\nThe dirt will be lost forever.', {
+      fontSize: `${Math.round(14 * SCALE)}px`,
       fontFamily: FONT_BODY,
       color: '#7890A8',
       align: 'center',
@@ -464,18 +464,18 @@ export default class HUD {
 
     const cleanup = () => items.forEach(i => i.destroy())
 
-    const yesBg = roundRect(s, W / 2 - 90, H / 2 + 50, 150, 44, 8, 0x6B2A2A, true)
+    const yesBg = roundRect(s, W / 2 - Math.round(90 * SCALE), H / 2 + Math.round(50 * SCALE), Math.round(150 * SCALE), Math.round(44 * SCALE), 8, 0x6B2A2A, true)
       .setScrollFactor(0).setDepth(52)
-    const yesTxt = s.add.text(W / 2 - 90, H / 2 + 50, 'ABANDON', {
-      fontSize: '16px', fontFamily: FONT, color: '#FF9A9A',
+    const yesTxt = s.add.text(W / 2 - Math.round(90 * SCALE), H / 2 + Math.round(50 * SCALE), 'ABANDON', {
+      fontSize: `${Math.round(16 * SCALE)}px`, fontFamily: FONT, color: '#FF9A9A',
     }).setScrollFactor(0).setDepth(53).setOrigin(0.5)
     items.push(yesBg, yesTxt)
     yesBg.on('pointerdown', () => { cleanup(); s.scene.start('MainMenuScene') })
 
-    const noBg = roundRect(s, W / 2 + 90, H / 2 + 50, 150, 44, 8, 0x2A6B3A, true)
+    const noBg = roundRect(s, W / 2 + Math.round(90 * SCALE), H / 2 + Math.round(50 * SCALE), Math.round(150 * SCALE), Math.round(44 * SCALE), 8, 0x2A6B3A, true)
       .setScrollFactor(0).setDepth(52)
-    const noTxt = s.add.text(W / 2 + 90, H / 2 + 50, 'STAY & FIGHT', {
-      fontSize: '16px', fontFamily: FONT, color: '#7FFFD4',
+    const noTxt = s.add.text(W / 2 + Math.round(90 * SCALE), H / 2 + Math.round(50 * SCALE), 'STAY & FIGHT', {
+      fontSize: `${Math.round(16 * SCALE)}px`, fontFamily: FONT, color: '#7FFFD4',
     }).setScrollFactor(0).setDepth(53).setOrigin(0.5)
     items.push(noBg, noTxt)
     noBg.on('pointerdown', () => { cleanup(); this.showPauseMenu() })
@@ -502,19 +502,20 @@ export default class HUD {
 
   _showSpeechBubble(x, y, text) {
     const s = this.scene
-    const bubble = s.add.text(x, y - 40, `💬 ${text}`, {
-      fontSize: '12px',
+    const yOff = Math.round(40 * SCALE)
+    const bubble = s.add.text(x, y - yOff, `💬 ${text}`, {
+      fontSize: `${Math.round(12 * SCALE)}px`,
       fontFamily: FONT_BODY,
       color: '#ffffff',
       stroke: '#000000',
       strokeThickness: 3,
       backgroundColor: '#1E2A3Acc',
-      padding: { x: 6, y: 4 },
+      padding: { x: Math.round(6 * SCALE), y: Math.round(4 * SCALE) },
     }).setOrigin(0.5, 1).setDepth(18)
 
     s.tweens.add({
       targets: bubble,
-      y: y - 70,
+      y: y - Math.round(70 * SCALE),
       alpha: 0,
       duration: 2500,
       delay: 1500,
@@ -579,10 +580,10 @@ export default class HUD {
         : 'The invasion continues...'
 
       const announcement = this.scene.add.text(
-        GAME.width / 2, GAME.height / 2 - 50,
+        W / 2, H / 2 - Math.round(50 * SCALE),
         `WAVE ${wave}`,
         {
-          fontSize: '80px',
+          fontSize: `${Math.round(80 * SCALE)}px`,
           fontFamily: FONT,
           color: '#FFD166',
           stroke: '#000000',
@@ -591,10 +592,10 @@ export default class HUD {
       ).setScrollFactor(0).setDepth(30).setOrigin(0.5).setAlpha(0)
 
       const sub = this.scene.add.text(
-        GAME.width / 2, GAME.height / 2 + 40,
+        W / 2, H / 2 + Math.round(40 * SCALE),
         subtitle,
         {
-          fontSize: '20px',
+          fontSize: `${Math.round(20 * SCALE)}px`,
           fontFamily: FONT_BODY,
           color: '#B8C6DB',
           stroke: '#000000',
@@ -667,12 +668,13 @@ export default class HUD {
   }
 
   _drawDirtFill(ratio) {
-    const w = Math.max(0, 260 * ratio)
-    const left = this._dirtX - 130
+    const w = Math.max(0, DIRT_W * ratio)
+    const left = this._dirtX - DIRT_W / 2
+    const top = DIRT_Y - DIRT_H / 2
     this._dirtGfx.clear()
     if (w > 1) {
       this._dirtGfx.fillStyle(this._dirtColor)
-      this._dirtGfx.fillRoundedRect(left, 32, w, 16, Math.min(8, w / 2))
+      this._dirtGfx.fillRoundedRect(left, top, w, DIRT_H, Math.min(8, w / 2))
     }
   }
 }

@@ -1,5 +1,7 @@
 import * as Phaser from 'phaser'
-import { VACUUMS, SETTINGS } from '../config/GameConfig.js'
+import { VACUUMS, SETTINGS, GAME } from '../config/GameConfig.js'
+
+const _S = GAME.width / 1280
 
 const VACUUM_SPRITES = {
   zoomba: 'vacuum_zoomba',
@@ -43,8 +45,11 @@ export default class Vacuum {
       }).setOrigin(0.5)
     }
 
-    this.hpBarBg = scene.add.rectangle(0, -this.radius - 8, 40, 5, 0x333333)
-    this.hpBar = scene.add.rectangle(-20, -this.radius - 8, 40, 5, 0x4caf50).setOrigin(0, 0.5)
+    this._hpBarW = Math.round(40 * _S)
+    this._hpBarH = Math.round(5 * _S)
+    this._hpBarOff = Math.round(8 * _S)
+    this.hpBarBg = scene.add.rectangle(0, -this.radius - this._hpBarOff, this._hpBarW, this._hpBarH, 0x333333)
+    this.hpBar = scene.add.rectangle(-this._hpBarW / 2, -this.radius - this._hpBarOff, this._hpBarW, this._hpBarH, 0x4caf50).setOrigin(0, 0.5)
 
     const containerItems = [this.body]
     if (this.label) containerItems.push(this.label)
@@ -84,7 +89,7 @@ export default class Vacuum {
     }
 
     const ratio = this.hp / this.maxHp
-    this.hpBar.width = 40 * ratio
+    this.hpBar.width = this._hpBarW * ratio
     this.hpBar.setFillStyle(
       ratio > 0.5 ? 0x4caf50 :
       ratio > 0.25 ? 0xff9800 : 0xf44336

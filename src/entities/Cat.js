@@ -1,5 +1,7 @@
 import * as Phaser from 'phaser'
-import { CATS, UPGRADE_COSTS, SETTINGS } from '../config/GameConfig.js'
+import { CATS, UPGRADE_COSTS, SETTINGS, GAME } from '../config/GameConfig.js'
+
+const _S = GAME.width / 1280
 
 const CAT_SPRITES = {
   kitten: 'cat_kitten',
@@ -180,7 +182,7 @@ export default class Cat {
     for (const cat of this.scene.cats) {
       if (cat === this) continue
       if (cat.type !== 'alley_cat') continue
-      if (Math.hypot(cat.x - this.x, cat.y - this.y) <= 120) nearbyCount++
+      if (Math.hypot(cat.x - this.x, cat.y - this.y) <= Math.round(120 * _S)) nearbyCount++
     }
     this._alleyCatBonus = 1 + nearbyCount * 0.15
   }
@@ -303,12 +305,12 @@ export default class Cat {
     if (!target) return
 
     const dist = Math.hypot(target.container.x - this.x, target.container.y - this.y)
-    const distBonus = Math.min(2.0, 1 + dist / 400)
+    const distBonus = Math.min(2.0, 1 + dist / Math.round(400 * _S))
     const boostedDamage = Math.round(finalDamage * distBonus)
 
     const arc = this.scene.add.circle(this.x, this.y, this.radius, this.color, 0.8)
     const midX = (this.x + target.container.x) / 2
-    const midY = Math.min(this.y, target.container.y) - 80
+    const midY = Math.min(this.y, target.container.y) - Math.round(80 * _S)
 
     this.scene.tweens.add({
       targets: arc,
@@ -326,7 +328,7 @@ export default class Cat {
           onComplete: () => {
             for (const vacuum of this.scene.vacuums) {
               if (!vacuum.alive) continue
-              if (vacuum.distanceTo(target.container.x, target.container.y) <= 60) {
+              if (vacuum.distanceTo(target.container.x, target.container.y) <= Math.round(60 * _S)) {
                 vacuum.takeDamage(boostedDamage)
               }
             }
@@ -391,7 +393,7 @@ export default class Cat {
     const shield = this.scene.add.rectangle(
       this.scene.waypoints[Math.floor(this.scene.waypoints.length / 2)].x,
       this.scene.waypoints[Math.floor(this.scene.waypoints.length / 2)].y,
-      20, 80, 0xce93d8, 0.7
+      Math.round(20 * _S), Math.round(80 * _S), 0xce93d8, 0.7
     ).setDepth(5)
 
     this.scene.time.addEvent({
@@ -400,7 +402,7 @@ export default class Cat {
       callback: () => {
         for (const vacuum of this.scene.vacuums) {
           if (!vacuum.alive) continue
-          if (vacuum.distanceTo(shield.x, shield.y) <= 60) {
+          if (vacuum.distanceTo(shield.x, shield.y) <= Math.round(60 * _S)) {
             vacuum.takeDamage(this.damage * 2)
           }
         }
@@ -413,7 +415,7 @@ export default class Cat {
 
   _triggerSiamese(tx, ty) {
     if (tx === null) return
-    const ball = this.scene.add.circle(tx, ty, 12, 0xdce8f0, 0.9).setDepth(5)
+    const ball = this.scene.add.circle(tx, ty, Math.round(12 * _S), 0xdce8f0, 0.9).setDepth(5)
     const startWp = this.scene.waypoints[0]
 
     this.scene.tweens.add({
@@ -425,7 +427,7 @@ export default class Cat {
       onUpdate: () => {
         for (const vacuum of this.scene.vacuums) {
           if (!vacuum.alive) continue
-          if (vacuum.distanceTo(ball.x, ball.y) <= 30) {
+          if (vacuum.distanceTo(ball.x, ball.y) <= Math.round(30 * _S)) {
             vacuum.container.x = ball.x
             vacuum.container.y = ball.y
             vacuum.takeDamage(5)
@@ -462,7 +464,7 @@ export default class Cat {
     if (tx === null) return
     const arc = this.scene.add.circle(this.x, this.y, this.radius * 1.5, this.color, 0.9)
     const midX = (this.x + tx) / 2
-    const midY = Math.min(this.y, ty) - 150
+    const midY = Math.min(this.y, ty) - Math.round(150 * _S)
 
     this.scene.tweens.add({
       targets: arc,
@@ -480,7 +482,7 @@ export default class Cat {
           onComplete: () => {
             for (const vacuum of this.scene.vacuums) {
               if (!vacuum.alive) continue
-              if (vacuum.distanceTo(tx, ty) <= 120) {
+              if (vacuum.distanceTo(tx, ty) <= Math.round(120 * _S)) {
                 vacuum.takeDamage(this.damage * 3)
               }
             }
@@ -500,9 +502,9 @@ export default class Cat {
 
   _triggerChonk(tx, ty) {
     if (tx === null) return
-    const shadow = this.scene.add.ellipse(tx, ty, 60, 30, 0x000000, 0.4).setDepth(4)
-    const bomb = this.scene.add.text(tx, ty - 300, '🐾', {
-      fontSize: '48px'
+    const shadow = this.scene.add.ellipse(tx, ty, Math.round(60 * _S), Math.round(30 * _S), 0x000000, 0.4).setDepth(4)
+    const bomb = this.scene.add.text(tx, ty - Math.round(300 * _S), '🐾', {
+      fontSize: `${Math.round(48 * _S)}px`
     }).setOrigin(0.5).setDepth(6)
 
     this.scene.tweens.add({
@@ -515,7 +517,7 @@ export default class Cat {
         shadow.destroy()
         this.scene.cameras.main.shake(400, 0.015)
 
-        const blast = this.scene.add.circle(tx, ty, 100, this.color, 0.4).setDepth(5)
+        const blast = this.scene.add.circle(tx, ty, Math.round(100 * _S), this.color, 0.4).setDepth(5)
         this.scene.tweens.add({
           targets: blast,
           scaleX: 2,
@@ -527,7 +529,7 @@ export default class Cat {
 
         for (const vacuum of this.scene.vacuums) {
           if (!vacuum.alive) continue
-          if (vacuum.distanceTo(tx, ty) <= 100) {
+          if (vacuum.distanceTo(tx, ty) <= Math.round(100 * _S)) {
             vacuum.takeDamage(this.damage * 4)
             vacuum.applySlow(0.1, 3000)
           }
@@ -538,8 +540,8 @@ export default class Cat {
   }
 
   _showTriggerText(x, y, msg) {
-    const txt = this.scene.add.text(x, y - 40, msg, {
-      fontSize: '16px',
+    const txt = this.scene.add.text(x, y - Math.round(40 * _S), msg, {
+      fontSize: `${Math.round(16 * _S)}px`,
       fontFamily: 'Fredoka One',
       color: '#ffd700',
       stroke: '#000000',
@@ -548,7 +550,7 @@ export default class Cat {
 
     this.scene.tweens.add({
       targets: txt,
-      y: y - 100,
+      y: y - Math.round(100 * _S),
       alpha: 0,
       duration: 1500,
       onComplete: () => txt.destroy(),

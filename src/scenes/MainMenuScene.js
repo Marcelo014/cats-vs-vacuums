@@ -10,6 +10,7 @@ export default class MainMenuScene extends Phaser.Scene {
   create() {
     const W = GAME.width
     const H = GAME.height
+    const SCALE = H / 720
 
     this.add.rectangle(W / 2, H / 2, W, H, 0x0a0a16)
 
@@ -20,13 +21,14 @@ export default class MainMenuScene extends Phaser.Scene {
       this.add.circle(x, y, r, 0xffffff, Phaser.Math.FloatBetween(0.1, 0.4))
     }
 
-    const catWatcher = this.add.text(W - 120, H - 140, '😾', {
-      fontSize: '64px',
+    const catWatcher = this.add.text(W - Math.round(120 * SCALE), H - Math.round(140 * SCALE), '😾', {
+      fontSize: `${Math.round(64 * SCALE)}px`,
     }).setOrigin(0.5)
 
-    const zoomba = this.add.circle(-30, H - 90, 20, 0xbdbdbd)
-    const zoombaLabel = this.add.text(-30, H - 90, '🤖', {
-      fontSize: '24px',
+    const zoombaR = Math.round(20 * SCALE)
+    const zoomba = this.add.circle(-30, H - Math.round(90 * SCALE), zoombaR, 0xbdbdbd)
+    const zoombaLabel = this.add.text(-30, H - Math.round(90 * SCALE), '🤖', {
+      fontSize: `${Math.round(24 * SCALE)}px`,
     }).setOrigin(0.5)
 
     this.tweens.add({
@@ -43,63 +45,63 @@ export default class MainMenuScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: catWatcher,
-      x: W - 160,
+      x: W - Math.round(160 * SCALE),
       duration: 4000,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut',
     })
 
-    this.add.text(W / 2, 160, 'CATS', {
-      fontSize: '110px',
+    this.add.text(W / 2, H * 0.222, 'CATS', {
+      fontSize: `${Math.round(110 * SCALE)}px`,
       fontFamily: 'Fredoka One',
       color: '#f9a825',
       stroke: '#000000',
       strokeThickness: 6,
     }).setOrigin(0.5)
 
-    this.add.text(W / 2, 270, 'VS', {
-      fontSize: '48px',
+    this.add.text(W / 2, H * 0.375, 'VS', {
+      fontSize: `${Math.round(48 * SCALE)}px`,
       fontFamily: 'Fredoka One',
       color: '#ffffff',
       stroke: '#000000',
       strokeThickness: 4,
     }).setOrigin(0.5)
 
-    this.add.text(W / 2, 350, 'VACUUMS', {
-      fontSize: '110px',
+    this.add.text(W / 2, H * 0.486, 'VACUUMS', {
+      fontSize: `${Math.round(110 * SCALE)}px`,
       fontFamily: 'Fredoka One',
       color: '#90caf9',
       stroke: '#000000',
       strokeThickness: 6,
     }).setOrigin(0.5)
 
-    this.add.text(W / 2, 450, 'Defend the dirt. Protect the mess. Never surrender.', {
-      fontSize: '18px',
+    this.add.text(W / 2, H * 0.625, 'Defend the dirt. Protect the mess. Never surrender.', {
+      fontSize: `${Math.round(18 * SCALE)}px`,
       fontFamily: 'Fredoka One',
       color: '#78909c',
     }).setOrigin(0.5)
 
-    this._makeButton(W / 2, 530, '▶  PLAY', '#a5d6a7', 0x1b5e20, () => {
+    this._makeButton(W / 2, H * 0.736, '▶  PLAY', '#a5d6a7', 0x1b5e20, SCALE, () => {
       this.scene.start('LevelSelectScene')
     })
 
-    this._makeButton(W / 2, 590, '?  HOW TO PLAY', '#b0bec5', 0x1a237e, () => {
-      this._showHowToPlay()
+    this._makeButton(W / 2, H * 0.819, '?  HOW TO PLAY', '#b0bec5', 0x1a237e, SCALE, () => {
+      this._showHowToPlay(W, H, SCALE)
     })
 
-    this.add.text(W - 12, H - 12, 'v0.1 — Week 1 Build', {
-      fontSize: '10px',
+    this.add.text(W - Math.round(12 * SCALE), H - Math.round(12 * SCALE), 'v0.1 — Week 1 Build', {
+      fontSize: `${Math.round(10 * SCALE)}px`,
       fontFamily: 'Fredoka One',
       color: '#37474f',
     }).setOrigin(1, 1)
   }
 
-  _makeButton(x, y, label, textColor, bgColor, onClick) {
-    const bg = roundRect(this, x, y, 260, 44, 8, bgColor, true)
+  _makeButton(x, y, label, textColor, bgColor, SCALE, onClick) {
+    const bg = roundRect(this, x, y, Math.round(260 * SCALE), Math.round(44 * SCALE), 8, bgColor, true)
 
     const txt = this.add.text(x, y, label, {
-      fontSize: '18px',
+      fontSize: `${Math.round(18 * SCALE)}px`,
       fontFamily: 'Fredoka One',
       color: textColor,
     }).setOrigin(0.5)
@@ -109,18 +111,15 @@ export default class MainMenuScene extends Phaser.Scene {
     bg.on('pointerdown', onClick)
   }
 
-  _showHowToPlay() {
-    const W = GAME.width
-    const H = GAME.height
-
+  _showHowToPlay(W, H, SCALE) {
     const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.8)
       .setInteractive()
 
-    const panel = roundRect(this, W / 2, H / 2, 620, 420, 16, 0x0d0d1a)
+    const panel = roundRect(this, W / 2, H / 2, Math.round(620 * SCALE), Math.round(420 * SCALE), 16, 0x0d0d1a)
       .setStrokeStyle(2, 0x37474f)
 
-    this.add.text(W / 2, H / 2 - 180, 'HOW TO PLAY', {
-      fontSize: '24px',
+    this.add.text(W / 2, H / 2 - Math.round(180 * SCALE), 'HOW TO PLAY', {
+      fontSize: `${Math.round(24 * SCALE)}px`,
       fontFamily: 'Fredoka One',
       color: '#ffd54f',
     }).setOrigin(0.5)
@@ -138,16 +137,16 @@ export default class MainMenuScene extends Phaser.Scene {
       'Tip: Place Persians to slow vacuums, Bengals for long range damage.',
     ]
 
-    this.add.text(W / 2 - 270, H / 2 - 130, lines.join('\n\n'), {
-      fontSize: '13px',
+    this.add.text(W / 2 - Math.round(270 * SCALE), H / 2 - Math.round(130 * SCALE), lines.join('\n\n'), {
+      fontSize: `${Math.round(13 * SCALE)}px`,
       fontFamily: 'Fredoka One',
       color: '#b0bec5',
       lineSpacing: 2,
-      wordWrap: { width: 540 },
+      wordWrap: { width: Math.round(540 * SCALE) },
     })
 
-    const closeBtn = this.add.text(W / 2, H / 2 + 185, '[ CLOSE ]', {
-      fontSize: '18px',
+    const closeBtn = this.add.text(W / 2, H / 2 + Math.round(185 * SCALE), '[ CLOSE ]', {
+      fontSize: `${Math.round(18 * SCALE)}px`,
       fontFamily: 'Fredoka One',
       color: '#ef9a9a',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true })

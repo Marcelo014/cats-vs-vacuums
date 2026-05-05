@@ -119,8 +119,8 @@ export default class GameScene extends Phaser.Scene {
       const cost = CATS[this._placingCatType].cost
       const newRadius = CATS[this._placingCatType].radius
 
-      if (pointer.y > GAME.height - 70) return
-      if (pointer.y < 10) return
+      if (pointer.y > GAME.height - Math.round(70 * (GAME.width / 1280))) return
+      if (pointer.y < Math.round(10 * (GAME.width / 1280))) return
       if (this._pathRenderer.isOnPath(x, y)) return
       if (this.scraps < cost) return
 
@@ -139,14 +139,18 @@ export default class GameScene extends Phaser.Scene {
 _drawBackground() {
   const W = GAME.width
   const H = GAME.height
+  const _S = GAME.width / 1280
 
-  // Floor base
   this.add.rectangle(W / 2, H / 2, W, H, 0x1A2535).setDepth(-3)
 
-  // Subtle floor planks
   const g = this.add.graphics().setDepth(-2)
 
-  for (let y = 65; y < H - 80; y += 28) {
+  const topY = Math.round(65 * _S)
+  const botY = H - Math.round(80 * _S)
+  const stepY = Math.round(28 * _S)
+  const stepX = Math.round(100 * _S)
+
+  for (let y = topY; y < botY; y += stepY) {
     g.lineStyle(1, 0x2D4A6B, 0.4)
     g.beginPath()
     g.moveTo(0, y)
@@ -154,18 +158,17 @@ _drawBackground() {
     g.strokePath()
   }
 
-  for (let x = 0; x < W; x += 100) {
+  for (let x = 0; x < W; x += stepX) {
     const offset = Phaser.Math.Between(-6, 6)
     g.lineStyle(1, 0x243344, 0.3)
     g.beginPath()
-    g.moveTo(x, 65 + offset)
-    g.lineTo(x, H - 80 + offset)
+    g.moveTo(x, topY + offset)
+    g.lineTo(x, botY + offset)
     g.strokePath()
   }
 
-  // Baseboards
-  this.add.rectangle(W / 2, 63, W, 4, 0x2D4A6B).setDepth(-1)
-  this.add.rectangle(W / 2, H - 82, W, 4, 0x2D4A6B).setDepth(-1)
+  this.add.rectangle(W / 2, topY - 2, W, 4, 0x2D4A6B).setDepth(-1)
+  this.add.rectangle(W / 2, botY + 2, W, 4, 0x2D4A6B).setDepth(-1)
 }
 
   _pauseGame() {
