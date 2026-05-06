@@ -5,6 +5,7 @@ const _S = GAME.width / 1280
 
 const CAT_SPRITES = {
   kitten: 'cat_kitten',
+  tabby: 'cat_tabby',
 }
 
 export default class Cat {
@@ -33,7 +34,7 @@ export default class Cat {
     this.fireRate = config.fireRate
     this.color = config.color
     this.radius = config.radius
-    this.placementRadius = this.radius
+    this.placementRadius = this.radius * 0.5
 
     this.spriteKey = CAT_SPRITES[type] || null
 

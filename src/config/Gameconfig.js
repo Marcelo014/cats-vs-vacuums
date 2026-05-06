@@ -108,7 +108,7 @@ export const CATS = {
     range: Math.round(80 * _S),
     fireRate: 600,
     color: 0xf9a825,
-    radius: Math.round(18 * _S),
+    radius: Math.round(31.05 * _S),
   },
   tabby: {
     name: 'Tabby',
@@ -118,7 +118,7 @@ export const CATS = {
     range: Math.round(110 * _S),
     fireRate: 900,
     color: 0xe67e22,
-    radius: Math.round(20 * _S),
+    radius: Math.round(37.95 * _S),
   },
   alley_cat: {
     name: 'Alley Cat',
@@ -128,7 +128,7 @@ export const CATS = {
     range: Math.round(90 * _S),
     fireRate: 300,
     color: 0x95a5a6,
-    radius: Math.round(18 * _S),
+    radius: Math.round(34.155 * _S),
   },
   siamese: {
     name: 'Siamese',
@@ -138,7 +138,7 @@ export const CATS = {
     range: Math.round(160 * _S),
     fireRate: 1200,
     color: 0xdce8f0,
-    radius: Math.round(22 * _S),
+    radius: Math.round(41.745 * _S),
   },
   maine_coon: {
     name: 'Maine Coon',
@@ -148,7 +148,7 @@ export const CATS = {
     range: Math.round(120 * _S),
     fireRate: 2500,
     color: 0x8d6e63,
-    radius: Math.round(26 * _S),
+    radius: Math.round(49.335 * _S),
   },
   persian: {
     name: 'Persian',
@@ -158,7 +158,7 @@ export const CATS = {
     range: Math.round(100 * _S),
     fireRate: 400,
     color: 0xce93d8,
-    radius: Math.round(20 * _S),
+    radius: Math.round(37.95 * _S),
   },
   bengal: {
     name: 'Bengal',
@@ -168,7 +168,7 @@ export const CATS = {
     range: Math.round(600 * _S),
     fireRate: 1500,
     color: 0xff8f00,
-    radius: Math.round(22 * _S),
+    radius: Math.round(41.745 * _S),
   },
   ragdoll: {
     name: 'Ragdoll',
@@ -178,7 +178,7 @@ export const CATS = {
     range: Math.round(200 * _S),
     fireRate: 2000,
     color: 0xfce4ec,
-    radius: Math.round(22 * _S),
+    radius: Math.round(41.745 * _S),
   },
   chonk: {
     name: 'Chonk',
@@ -188,7 +188,7 @@ export const CATS = {
     range: Math.round(70 * _S),
     fireRate: 1800,
     color: 0x4db6ac,
-    radius: Math.round(30 * _S),
+    radius: Math.round(56.925 * _S),
   },
   tuxedo: {
     name: 'Tuxedo Cat',
@@ -198,6 +198,6 @@ export const CATS = {
     range: Math.round(120 * _S),
     fireRate: 0,
     color: 0x424242,
-    radius: Math.round(22 * _S),
+    radius: Math.round(41.745 * _S),
   },
 }

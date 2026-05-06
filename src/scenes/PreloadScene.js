@@ -24,6 +24,7 @@ export default class PreloadScene extends Phaser.Scene {
 
     // Cat sprites
     this.load.image('cat_kitten', '/assets/sprites/kitten_idle.png')
+    this.load.image('cat_tabby', '/assets/sprites/tabby_idle.png')
 
     // Vacuum sprites
     this.load.image('vacuum_zoomba', '/assets/sprites/zoomba_idle.png')

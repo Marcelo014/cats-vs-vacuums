@@ -11,6 +11,9 @@ const config = {
   width: GAME.width,
   height: GAME.height,
   backgroundColor: '#1a1a2e',
+  render: {
+    pixelArt: true,
+  },
   parent: 'game-container',
   scene: [PreloadScene, MainMenuScene, LevelSelectScene, GameScene, ResultScene],
 }
